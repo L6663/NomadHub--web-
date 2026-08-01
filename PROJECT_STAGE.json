@@ -2,19 +2,31 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-01T22:08:00+08:00",
+  "updated_at": "2026-08-01T22:16:00+08:00",
   "current_stage": {
     "id": "S1",
     "name": "工程参考规范统一",
-    "status": "IN_PROGRESS",
-    "progress_percent": 0,
+    "status": "PASSED",
+    "progress_percent": 100,
     "started_at": "2026-08-01T22:08:00+08:00",
-    "goal": "统一车辆坐标、基准尺寸、轮轴轮拱、全部车窗、车门检修舱、车顶设备和皮肤锚点，为连续车身灰模建立唯一工程基准。"
+    "completed_at": "2026-08-01T22:16:00+08:00",
+    "review_result": "PASSED",
+    "deliverables": [
+      "docs/stages/S1/S1_Engineering_Reference_Package.md",
+      "docs/stages/S1/RV_Engineering_Reference_S1.json",
+      "docs/stages/S1/S1_Stage_Review.md"
+    ]
+  },
+  "next_stage": {
+    "id": "S2",
+    "name": "Blender连续车身灰模",
+    "status": "READY",
+    "entry_condition": "S1已通过；以RV_Engineering_Reference_S1.json为唯一坐标权威。"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
-    {"id":"S1","name":"工程参考规范统一","status":"IN_PROGRESS","progress_percent":0},
-    {"id":"S2","name":"Blender连续车身灰模","status":"BLOCKED_BY_S1","progress_percent":0},
+    {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100},
+    {"id":"S2","name":"Blender连续车身灰模","status":"READY","progress_percent":0},
     {"id":"S3","name":"结构精模与部件拆分","status":"NOT_STARTED","progress_percent":0},
     {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
@@ -23,19 +35,10 @@
     {"id":"S8","name":"入场动画与模块交互","status":"NOT_STARTED","progress_percent":0},
     {"id":"S9","name":"整体验收与发布","status":"NOT_STARTED","progress_percent":0}
   ],
-  "s1_tasks": [
-    {"id":"S1-01","name":"车辆坐标与基准尺寸","status":"IN_PROGRESS"},
-    {"id":"S1-02","name":"轮轴、轮拱和轮胎坐标","status":"NOT_STARTED"},
-    {"id":"S1-03","name":"全部车窗位置表","status":"NOT_STARTED"},
-    {"id":"S1-04","name":"车门与检修舱位置表","status":"NOT_STARTED"},
-    {"id":"S1-05","name":"车顶设备坐标表","status":"NOT_STARTED"},
-    {"id":"S1-06","name":"皮肤控制线锚点表","status":"NOT_STARTED"},
-    {"id":"S1-07","name":"工程规范冲突检查","status":"NOT_STARTED"},
-    {"id":"S1-08","name":"S1阶段总审查","status":"NOT_STARTED"}
-  ],
-  "repository_policy": {
+  "stage_management": {
+    "mode": "MAJOR_STAGE_ONLY",
+    "rule": "以大阶段确定方向；阶段内部任务统一执行，不再逐项汇报。每个大阶段结束后统一审查并提交Git记录。",
     "bulk_upload": "PAUSED",
-    "stage_commits": "ENABLED",
-    "rule": "每个阶段开始、任务完成、阶段验收、阻塞与恢复均提交独立Git记录。"
+    "stage_commits": "ENABLED"
   }
 }
