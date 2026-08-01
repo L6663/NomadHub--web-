@@ -1,0 +1,41 @@
+{
+  "project": "NomadHub General3",
+  "version": "V1.7",
+  "branch": "main",
+  "updated_at": "2026-08-01T22:08:00+08:00",
+  "current_stage": {
+    "id": "S1",
+    "name": "工程参考规范统一",
+    "status": "IN_PROGRESS",
+    "progress_percent": 0,
+    "started_at": "2026-08-01T22:08:00+08:00",
+    "goal": "统一车辆坐标、基准尺寸、轮轴轮拱、全部车窗、车门检修舱、车顶设备和皮肤锚点，为连续车身灰模建立唯一工程基准。"
+  },
+  "stages": [
+    {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
+    {"id":"S1","name":"工程参考规范统一","status":"IN_PROGRESS","progress_percent":0},
+    {"id":"S2","name":"Blender连续车身灰模","status":"BLOCKED_BY_S1","progress_percent":0},
+    {"id":"S3","name":"结构精模与部件拆分","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S7","name":"Three.js正式接入","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S8","name":"入场动画与模块交互","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S9","name":"整体验收与发布","status":"NOT_STARTED","progress_percent":0}
+  ],
+  "s1_tasks": [
+    {"id":"S1-01","name":"车辆坐标与基准尺寸","status":"IN_PROGRESS"},
+    {"id":"S1-02","name":"轮轴、轮拱和轮胎坐标","status":"NOT_STARTED"},
+    {"id":"S1-03","name":"全部车窗位置表","status":"NOT_STARTED"},
+    {"id":"S1-04","name":"车门与检修舱位置表","status":"NOT_STARTED"},
+    {"id":"S1-05","name":"车顶设备坐标表","status":"NOT_STARTED"},
+    {"id":"S1-06","name":"皮肤控制线锚点表","status":"NOT_STARTED"},
+    {"id":"S1-07","name":"工程规范冲突检查","status":"NOT_STARTED"},
+    {"id":"S1-08","name":"S1阶段总审查","status":"NOT_STARTED"}
+  ],
+  "repository_policy": {
+    "bulk_upload": "PAUSED",
+    "stage_commits": "ENABLED",
+    "rule": "每个阶段开始、任务完成、阶段验收、阻塞与恢复均提交独立Git记录。"
+  }
+}
