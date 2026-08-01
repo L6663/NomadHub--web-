@@ -1,0 +1,43 @@
+{
+  "document":{"id":"NH-V1.7-S1-ENG-REF-001","project":"NomadHub General3","version":"V1.7","stage":"S1","status":"PASSED","scope":"网页数字孪生与实时三维资产，不作为道路车辆制造或法规认证图纸","authoritative_reference":"房车外观工程参考图板.png","coordinate_authority":"本JSON优先于参考图像素位置；参考图只控制外观语言。","completed_at":"2026-08-01T22:16:00+08:00"},
+  "coordinate_system":{"unit":"meter","origin":"车辆外包络几何中心在地面的投影点","x_axis":"车头->车尾","y_axis":"车辆左侧->右侧","z_axis":"地面->车顶","front_is_negative_x":true,"left_is_negative_y":true,"up_is_positive_z":true,"blender_scale":"1 Unit = 1 m"},
+  "master_dimensions_m":{"overall_length":8.99,"overall_width":2.35,"overall_height":3.05,"body_roof_height_excluding_roof_equipment":2.79,"ground_clearance":0.19,"wheelbase":4.5,"front_overhang":1.26,"rear_overhang":3.23,"front_bumper_x":-4.495,"rear_bumper_x":4.495,"left_outer_y":-1.175,"right_outer_y":1.175,"front_axle_x":-3.235,"rear_axle_x":1.265,"tolerance_visual_asset":0.01,"symmetry_plane_y":0.0},
+  "wheels_and_arches":{"tire_spec":"235/75 R16C","tire_width":0.235,"tire_outer_diameter":0.759,"tire_radius":0.3795,"rim_diameter":0.4064,"track_width":2.0,"wheel_center_z":0.3795,"arch_opening_width":1.02,"arch_opening_height":0.87,"arch_top_z":0.835,"arch_radial_clearance":0.06,"arch_side_clearance":0.045,"front_steer_clearance_deg":32,"wheel_root_orientation":{"steer_axis":"local Z","roll_axis":"local Y"},"wheel_centers":[{"node":"WHEEL_FL_ROOT","x":-3.235,"y":-1.0,"z":0.3795},{"node":"WHEEL_FR_ROOT","x":-3.235,"y":1.0,"z":0.3795},{"node":"WHEEL_RL_ROOT","x":1.265,"y":-1.0,"z":0.3795},{"node":"WHEEL_RR_ROOT","x":1.265,"y":1.0,"z":0.3795}]},
+  "windows":[
+    {"node":"GLASS_WINDSHIELD","side":"front","center":[-4.115,0.0,2.06],"size":[0.64,2.06,0.9],"corner_radius":0.13,"frame_width":0.045,"curvature":"double-curved"},
+    {"node":"GLASS_DRIVER_L","side":"left","center":[-3.61,-1.145,1.95],"size":[0.76,0.03,0.82],"corner_radius":0.09,"frame_width":0.04,"curvature":"single-curved"},
+    {"node":"GLASS_PASSENGER_R","side":"right","center":[-3.61,1.145,1.95],"size":[0.76,0.03,0.82],"corner_radius":0.09,"frame_width":0.04,"curvature":"single-curved"},
+    {"node":"GLASS_LIVING_L_01","side":"left","center":[-2.07,-1.158,2.09],"size":[1.06,0.024,0.76],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_LIVING_L_02","side":"left","center":[-0.76,-1.158,2.09],"size":[1.1,0.024,0.76],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_LIVING_L_03","side":"left","center":[2.24,-1.158,2.07],"size":[1.02,0.024,0.72],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_LIVING_R_01","side":"right","center":[-2.05,1.158,2.08],"size":[1.0,0.024,0.74],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_LIVING_R_02","side":"right","center":[0.86,1.158,2.08],"size":[1.48,0.024,0.76],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_LIVING_R_03","side":"right","center":[2.53,1.158,2.06],"size":[0.82,0.024,0.70],"corner_radius":0.07,"frame_width":0.038,"curvature":"planar"},
+    {"node":"GLASS_REAR","side":"rear","center":[4.475,0.0,1.91],"size":[0.024,1.15,0.70],"corner_radius":0.085,"frame_width":0.042,"curvature":"planar"}
+  ],
+  "doors_and_hatches":[
+    {"node":"DOOR_DRIVER_L","side":"left","center":[-3.52,-1.16,1.32],"size":[0.82,0.03,1.78],"bottom_z":0.43,"hinge":"front","gap":0.006},
+    {"node":"DOOR_PASSENGER_R","side":"right","center":[-3.52,1.16,1.32],"size":[0.82,0.03,1.78],"bottom_z":0.43,"hinge":"front","gap":0.006},
+    {"node":"DOOR_LIVING_R","side":"right","center":[-0.34,1.16,1.33],"size":[0.76,0.03,1.96],"bottom_z":0.35,"hinge":"front","gap":0.006},
+    {"node":"HATCH_SERVICE_L_A","side":"left","center":[-2.03,-1.165,0.59],"size":[0.72,0.025,0.46],"bottom_z":0.36,"hinge":"top","gap":0.005},
+    {"node":"HATCH_STORAGE_L_B","side":"left","center":[-0.65,-1.165,0.60],"size":[1.18,0.025,0.52],"bottom_z":0.34,"hinge":"top","gap":0.005},
+    {"node":"HATCH_STORAGE_L_C","side":"left","center":[2.75,-1.165,0.64],"size":[0.90,0.025,0.62],"bottom_z":0.33,"hinge":"top","gap":0.005},
+    {"node":"HATCH_STORAGE_R_A","side":"right","center":[2.75,1.165,0.62],"size":[0.88,0.025,0.58],"bottom_z":0.33,"hinge":"top","gap":0.005},
+    {"node":"HATCH_STORAGE_R_B","side":"right","center":[0.82,1.165,0.59],"size":[1.05,0.025,0.50],"bottom_z":0.34,"hinge":"top","gap":0.005},
+    {"node":"HATCH_SERVICE_R_C","side":"right","center":[-2.20,1.165,0.57],"size":[0.66,0.025,0.42],"bottom_z":0.36,"hinge":"top","gap":0.005},
+    {"node":"PORT_WATER_L","side":"left","center":[2.92,-1.172,1.00],"size":[0.16,0.018,0.16]},
+    {"node":"PORT_POWER_R","side":"right","center":[2.88,1.172,0.98],"size":[0.16,0.018,0.16]}
+  ],
+  "roof_equipment":[
+    {"node":"ROOF_AC","center":[-2.35,0.0,2.92],"size":[0.92,0.76,0.26],"clearance":0.12},
+    {"node":"SOLAR_ARRAY","center":[-0.35,-0.08,2.825],"size":[2.30,1.42,0.07],"clearance":0.10},
+    {"node":"ROOF_SKYLIGHT","center":[1.22,0.0,2.835],"size":[0.62,0.52,0.09],"clearance":0.10},
+    {"node":"ROOF_VENT_FAN","center":[2.32,0.10,2.84],"size":[0.46,0.46,0.11],"clearance":0.10},
+    {"node":"ROOF_ANTENNA","center":[3.25,-0.26,2.93],"size":[0.16,0.16,0.18],"clearance":0.10},
+    {"node":"AWNING_HOUSING_R","center":[0.10,1.155,2.70],"size":[4.90,0.12,0.15],"clearance":0.06}
+  ],
+  "livery":{"palette":{"base_silver_white":"#E6E9ED","waistline_dark_gray":"#383745","primary_cyan":"#00B7C3","accent_light_cyan":"#6DE2E6","trim_bright_silver":"#C0C6CC"},"side_coordinate_space":"x-z vehicle coordinates","polylines":{"dark_gray":[[-4.15,1.05],[-3.30,1.18],[-2.20,1.20],[-0.80,1.18],[0.70,1.23],[2.10,1.42],[3.35,1.66],[4.18,1.76]],"primary_cyan":[[-4.05,0.98],[-3.20,1.08],[-2.05,1.10],[-0.55,1.08],[0.80,1.14],[2.20,1.32],[3.45,1.54],[4.15,1.62]],"light_cyan":[[-3.90,0.91],[-3.00,0.99],[-1.85,1.00],[-0.35,0.99],[0.95,1.05],[2.30,1.20],[3.50,1.40],[4.10,1.48]]},"logo_zones":{"left_nomadhub":{"center":[-1.90,-1.176,1.55],"size":[1.45,0.01,0.38]},"right_nomadhub":{"center":[-1.90,1.176,1.55],"size":[1.45,0.01,0.38]},"rear_nomadhub":{"center":[4.505,0.0,2.50],"size":[0.01,1.00,0.20]}},"rules":["使用UV纹理，禁止有厚度几何贴条","跨门和检修舱时保留seam mask","不得进入玻璃、轮拱、灯具和密封区域","左右文字分别绘制，禁止镜像文字","前后包角保持切线连续"]},
+  "node_naming":{"root":"RV_ROOT","categories":["BODY","GLASS","DOORS","HATCHES","WHEELS","LIGHTS","MIRRORS","ROOF","AWNING","INTERIOR"],"rules":["全大写英文与下划线","左右部件使用_L/_R","动画父节点使用_ROOT","同类序号使用两位数字","禁止无语义默认名称"],"required_nodes":["RV_ROOT","BODY_SHELL","BODY_FRONT_FASCIA","BODY_REAR_PANEL","GLASS_WINDSHIELD","GLASS_DRIVER_L","GLASS_PASSENGER_R","GLASS_REAR","DOOR_DRIVER_L","DOOR_PASSENGER_R","DOOR_LIVING_R","WHEEL_FL_ROOT","WHEEL_FR_ROOT","WHEEL_RL_ROOT","WHEEL_RR_ROOT","ROOF_AC","SOLAR_ARRAY","ROOF_SKYLIGHT","ROOF_VENT_FAN","AWNING_HOUSING_R"]},
+  "clearance_rules_m":{"window_to_door_seam_min":0.04,"window_to_body_edge_min":0.06,"hatch_to_wheel_arch_min":0.08,"hatch_to_door_seam_min":0.06,"roof_item_to_roof_edge_min":0.10,"roof_item_to_roof_item_min":0.10,"glass_to_frame_depth_offset":0.006,"livery_to_glass_min":0.025,"livery_to_wheel_arch_min":0.025},
+  "stage_gate":{"result":"PASSED","next_stage":"S2","next_stage_name":"Blender连续车身灰模","conditions":["S2必须以本JSON坐标为唯一位置依据","权威参考图仅用于轮廓和风格，不得覆盖冻结坐标","任何尺寸变更必须退回S1重新审查"]}
+}
