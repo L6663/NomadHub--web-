@@ -1,0 +1,6 @@
+webui/node_modules/
+webui/dist/
+server/build/
+server/db/*.db
+*.log
+.DS_Store
