@@ -2,32 +2,37 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-01T22:16:00+08:00",
+  "updated_at": "2026-08-01T23:40:00+08:00",
   "current_stage": {
+    "id": "S2",
+    "name": "Blender连续车身灰模",
+    "status": "IN_PROGRESS",
+    "progress_percent": 20,
+    "started_at": "2026-08-01T23:40:00+08:00",
+    "goal": "依据S1冻结坐标建立连续车身壳体、真实轮拱、车窗开孔、车门与检修舱边界、四轮根节点和车顶设备灰模。",
+    "working_outputs": [
+      "NomadHub_RV_V1.7_Blockout.glb",
+      "S2_Blockout_Build_Summary.json",
+      "S2_12_View_Blockout_Review.png"
+    ],
+    "review_status": "NOT_REVIEWED"
+  },
+  "previous_stage": {
     "id": "S1",
     "name": "工程参考规范统一",
     "status": "PASSED",
-    "progress_percent": 100,
-    "started_at": "2026-08-01T22:08:00+08:00",
-    "completed_at": "2026-08-01T22:16:00+08:00",
-    "review_result": "PASSED",
-    "deliverables": [
-      "docs/stages/S1/S1_Engineering_Reference_Package.md",
-      "docs/stages/S1/RV_Engineering_Reference_S1.json",
-      "docs/stages/S1/S1_Stage_Review.md"
-    ]
+    "progress_percent": 100
   },
   "next_stage": {
-    "id": "S2",
-    "name": "Blender连续车身灰模",
-    "status": "READY",
-    "entry_condition": "S1已通过；以RV_Engineering_Reference_S1.json为唯一坐标权威。"
+    "id": "S3",
+    "name": "结构精模与部件拆分",
+    "status": "BLOCKED_BY_S2"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
     {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100},
-    {"id":"S2","name":"Blender连续车身灰模","status":"READY","progress_percent":0},
-    {"id":"S3","name":"结构精模与部件拆分","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S2","name":"Blender连续车身灰模","status":"IN_PROGRESS","progress_percent":20},
+    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2","progress_percent":0},
     {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
@@ -37,7 +42,7 @@
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
-    "rule": "以大阶段确定方向；阶段内部任务统一执行，不再逐项汇报。每个大阶段结束后统一审查并提交Git记录。",
+    "rule": "以大阶段确定方向；阶段内部统一执行。仅在阶段启动、阶段完成或重大阻塞时提交Git状态。",
     "bulk_upload": "PAUSED",
     "stage_commits": "ENABLED"
   }
