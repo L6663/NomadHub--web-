@@ -1,0 +1,17 @@
+{
+  "source_file": "NomadHub_RV_V1.7_S3_R3_Final.glb",
+  "bytes": 943368,
+  "sha256": "d1179e8b11dc96fc2e08fa5b2cd4253c79d0d10090d87ee2b308ede114228379",
+  "base64_chars": 1257824,
+  "chunk_size": 180000,
+  "chunks": 7,
+  "chunk_files": [
+    "part_00.b64",
+    "part_01.b64",
+    "part_02.b64",
+    "part_03.b64",
+    "part_04.b64",
+    "part_05.b64",
+    "part_06.b64"
+  ]
+}
