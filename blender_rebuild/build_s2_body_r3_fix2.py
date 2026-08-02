@@ -1,4 +1,10 @@
-"""Second R3 integration correction: clear the cab-door opening sweep."""
+"""Second R3 integration correction: clear the cab-door opening sweep.
+
+The first sweep-clear attempt reduced each cab-door/body contact to one
+triangle pair at the closed endpoints. This revision adds a deterministic
+30 mm minimum outward clearance, slightly trims the panel perimeter and keeps
+the panel object origin centred so both hinge actions remain measurable.
+"""
 
 import importlib.util
 from pathlib import Path
@@ -21,6 +27,14 @@ entry = fix1.entry
 clearance = fix1.clearance
 
 
+CAB_DOOR_X_MIN_M = -4.340
+CAB_DOOR_X_MAX_M = -3.940
+CAB_DOOR_Z_MIN_M = 0.515
+CAB_DOOR_Z_MAX_M = 2.105
+CAB_DOOR_OUTER_OFFSET_M = 0.055
+CAB_DOOR_INNER_OFFSET_M = 0.030
+
+
 def sweep_clear_cab_door_panel(name, side_sign):
     obj = bpy.data.objects.get(name)
     if obj is None or obj.parent is None:
@@ -30,12 +44,13 @@ def sweep_clear_cab_door_panel(name, side_sign):
     bpy.context.view_layer.update()
 
     # The true body opening is [-4.400, -3.880] x [0.450, 2.170].
-    # Keep a 40-50 mm reveal so the subdivided boundary and the animated shell
-    # never share triangles. Both panel surfaces remain outside the body skin.
-    x_min, x_max = -4.350, -3.930
-    z_min, z_max = 0.505, 2.115
-    outer_offset = side_sign * 0.040
-    inner_offset = side_sign * 0.012
+    # Keep at least 30 mm between the panel inner skin and the nominal body
+    # side. The trimmed perimeter also avoids Catmull-Clark boundary flare at
+    # the four opening corners.
+    x_min, x_max = CAB_DOOR_X_MIN_M, CAB_DOOR_X_MAX_M
+    z_min, z_max = CAB_DOOR_Z_MIN_M, CAB_DOOR_Z_MAX_M
+    outer_offset = side_sign * CAB_DOOR_OUTER_OFFSET_M
+    inner_offset = side_sign * CAB_DOOR_INNER_OFFSET_M
 
     def side_y(x, offset):
         return side_sign * builder.section_dimensions(x)[0] / 2.0 + offset
@@ -87,8 +102,9 @@ def sweep_clear_cab_door_panel(name, side_sign):
         bpy.data.meshes.remove(old_mesh)
     obj["s2_r3_tapered_cab_panel"] = True
     obj["s2_r3_moving_origin_centered"] = True
-    obj["s2_r3_sweep_clear_reveal_m"] = 0.040
-    obj["s2_r3_min_outward_offset_m"] = 0.012
+    obj["s2_r3_sweep_clear_reveal_m"] = 0.060
+    obj["s2_r3_min_outward_offset_m"] = CAB_DOOR_INNER_OFFSET_M
+    obj["s2_r3_outer_offset_m"] = CAB_DOOR_OUTER_OFFSET_M
 
 
 r3.replace_cab_door_panel = sweep_clear_cab_door_panel
