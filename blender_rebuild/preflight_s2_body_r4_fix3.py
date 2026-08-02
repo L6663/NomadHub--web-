@@ -33,10 +33,9 @@ preflight_r4.preflight.base.entry = r4.entry
 
 
 def animation_preflight_f3():
-    # preflight_r4 -> R3 repair preflight -> R3 base preflight -> R2 validator
-    # -> S2 base validator -> S1C validator. Use the real nested module path;
-    # validator.s1c does not exist at this layer.
-    s1c = preflight_r4.preflight.base.validator.base.s1c
+    # preflight_r4 -> R3 repair preflight -> R3 base preflight. The R3 base
+    # validator already exposes its imported S1C module directly as ``s1c``.
+    s1c = preflight_r4.preflight.base.validator.s1c
     original_static = s1c.STATIC_COLLISION_OBJECTS
     try:
         s1c.STATIC_COLLISION_OBJECTS = (
