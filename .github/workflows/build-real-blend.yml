@@ -66,6 +66,11 @@ jobs:
           test -s build/output/NomadHub_General3_V1.7_S1C.blend
           test -s build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb
           test -s build/output/NomadHub_General3_V1.7_S1C_Preview.png
+          test -s build/output/S1C_Left_Orthographic.png
+          test -s build/output/S1C_Right_Orthographic.png
+          test -s build/output/S1C_Top_Orthographic.png
+          test -s build/output/S1C_Left_Open.png
+          test -s build/output/S1C_Right_Open.png
           test -s build/output/BLENDER_BUILD_MANIFEST.json
           test -s build/output/S1C_Collision_Clearance.json
 
