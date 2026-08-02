@@ -1,14 +1,14 @@
 {
   "project": "NomadHub General3",
   "version": "V1.7",
-  "branch": "main",
-  "updated_at": "2026-08-02T16:10:00+08:00",
+  "branch": "fix/s1c-geometry-gates",
+  "updated_at": "2026-08-02T16:48:00+08:00",
   "current_stage": {
-    "id": "BLENDER_NATIVE_REBUILD",
-    "name": "真实Blender母版重建与上游整改",
-    "status": "BASELINE_VERIFIED",
-    "summary": "已使用官方Blender 4.2.0在GitHub Actions中原生创建、保存、重新打开并导出可编辑.blend工程。该成果解决了此前没有可核验Blender源工程的问题，但仍是Blender原生基线，不等于产品级拓扑或S2/S3重新验收通过。",
-    "verification_path": "docs/audits/REAL_BLEND_REBUILD_VERIFICATION.md"
+    "id": "S1C_REPAIR",
+    "name": "S1轴距、轮拱与检修舱结构闭环",
+    "status": "IMPLEMENTATION_IN_PROGRESS",
+    "summary": "已进入真实Blender母版的S1C修复：保持5.150m轴距与后轴X=1.905m，补齐四个轮拱语义对象，左右检修舱改为独立坐标，并新增Blender母版与GLB回导的自动净距、坐标和动画门禁。S2在GitHub Actions复验通过前继续阻塞。",
+    "verification_path": "build/output/S1C_VERIFICATION_REPORT.json"
   },
   "corrected_stage_status": {
     "S0": {
@@ -18,18 +18,18 @@
     },
     "S1": {
       "name": "工程参考规范统一",
-      "status": "REWORK_REQUIRED",
-      "note": "需按5.150m轴距重新闭环轮拱、检修舱、车窗和皮肤锚点。"
+      "status": "REPAIR_IMPLEMENTED_PENDING_CI",
+      "note": "候选修复采用5.150m轴距；左侧检修舱X=-1.95/0.35/3.05m，右侧X=-1.95/0.75/3.05m；需由Blender 4.2构建和GLB回导门禁最终确认。"
     },
     "S2": {
       "name": "连续车身灰模",
-      "status": "BLENDER_BASELINE_CREATED_REVIEW_REQUIRED",
-      "note": "真实.blend母版已经生成并可重新打开；当前几何仍是Blender原生基线，尚未完成产品级曲面和手工重拓扑。"
+      "status": "BLOCKED_BY_S1C_VALIDATION",
+      "note": "真实.blend母版已经存在，但必须先取得S1C_VERIFICATION_REPORT.json的PASS与s2_ready=true。"
     },
     "S3": {
       "name": "结构精模与部件拆分",
       "status": "NOT_REACCEPTED",
-      "note": "已有门、舱、轮组和动画层级，但必须在真实Blender母版上继续精修并重新验收。"
+      "note": "已有门、舱、轮组和动画层级，但必须在S2重新通过后继续。"
     },
     "S4": {
       "name": "UV展开与Nomad Silver皮肤",
@@ -68,12 +68,29 @@
     ],
     "scope_limit": "该工程是真实可编辑Blender基线，但尚未达到手工重拓扑、A级曲面或最终产品级房车资产标准。"
   },
+  "s1c_candidate": {
+    "workflow": "Build Genuine Blender Project",
+    "artifact_name": "NomadHub-General3-V1.7-S1C",
+    "wheelbase_m": 5.15,
+    "front_axle_x_m": -3.245,
+    "rear_axle_x_m": 1.905,
+    "minimum_wheel_arch_clearance_m": 0.08,
+    "minimum_door_seam_clearance_m": 0.06,
+    "service_hatch_centers_x_m": {
+      "HATCH_L_1": -1.95,
+      "HATCH_L_2": 0.35,
+      "HATCH_L_3": 3.05,
+      "HATCH_R_1": -1.95,
+      "HATCH_R_2": 0.75,
+      "HATCH_R_3": 3.05
+    },
+    "gate": "PENDING_GITHUB_ACTIONS"
+  },
   "next_actions": [
-    "在真实Blender工程中重做S1冲突闭环。",
-    "重拓扑车身、驾驶舱、A柱、轮拱和门舱区域。",
-    "用Blender正投影和Eevee视图重新执行S2视觉验收。",
-    "在同一.blend中继续S3部件精修与动画碰撞验证。",
-    "S2/S3重新通过后恢复S4。"
+    "由GitHub Actions使用Blender 4.2生成NomadHub_General3_V1.7_S1C.blend。",
+    "验证四轮根节点、四轮拱中心、六检修舱坐标和13个Action。",
+    "在全新场景回导GLB并确认关键坐标差值不超过2mm。",
+    "仅在S1C报告PASS且s2_ready=true后建立S2工作母版。"
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
