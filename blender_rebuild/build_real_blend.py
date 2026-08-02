@@ -249,9 +249,9 @@ def compute_s1c_clearance():
         VEHICLE["rear_axle_x_m"] + ARCH_RX_M + ARCH_LIP_RADIUS_M,
     )
     door_intervals = {
-        "L": (("DOOR_DRIVER_L", -4.02, -3.20),),
+        "L": (("DOOR_DRIVER_L", -4.40, -3.88),),
         "R": (
-            ("DOOR_PASSENGER_R", -4.02, -3.20),
+            ("DOOR_PASSENGER_R", -4.40, -3.88),
             ("DOOR_LIVING_R", -0.82, -0.04),
         ),
     }
@@ -359,8 +359,8 @@ def main():
         for segment_name, x_min, x_max in skirt_segments:
             make_box(
                 f"SIDE_SKIRT_{suffix}_{segment_name}",
-                (x_max - x_min, 0.10, 0.12),
-                ((x_min + x_max) / 2, side_sign * 1.15, 0.285),
+                (x_max - x_min, 0.10, 0.10),
+                ((x_min + x_max) / 2, side_sign * 1.15, 0.245),
                 dark,
                 body,
                 bevel=0.025,
@@ -392,8 +392,8 @@ def main():
     make_box("GLASS_REAR", (0.035, 1.35, 0.65), (4.47, 0, 1.98), glass, glass_group, bevel=0.04)
 
     door_specs = [
-        ("DOOR_DRIVER_L_ROOT", (-4.02, -1.18, 0.45), (0.82, 0.05, 1.72), (0.41, 0, 0.86), -68),
-        ("DOOR_PASSENGER_R_ROOT", (-4.02, 1.18, 0.45), (0.82, 0.05, 1.72), (0.41, 0, 0.86), 68),
+        ("DOOR_DRIVER_L_ROOT", (-4.40, -1.18, 0.45), (0.52, 0.05, 1.72), (0.26, 0, 0.86), -68),
+        ("DOOR_PASSENGER_R_ROOT", (-4.40, 1.18, 0.45), (0.52, 0.05, 1.72), (0.26, 0, 0.86), 68),
         ("DOOR_LIVING_R_ROOT", (-0.82, 1.18, 0.34), (0.78, 0.05, 1.96), (0.39, 0, 0.98), 82),
     ]
     door_roots = {}
