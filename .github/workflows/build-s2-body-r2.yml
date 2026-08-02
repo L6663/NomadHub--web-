@@ -9,13 +9,16 @@ on:
       - "blender_rebuild/build_s2_body_r2_clearance.py"
       - "blender_rebuild/build_s2_body_r3.py"
       - "blender_rebuild/build_s2_body_r3_fix.py"
+      - "blender_rebuild/build_s2_body_r3_fix2.py"
       - "blender_rebuild/preflight_s2_body_r2.py"
       - "blender_rebuild/preflight_s2_body_r3.py"
       - "blender_rebuild/preflight_s2_body_r3_fix.py"
+      - "blender_rebuild/preflight_s2_body_r3_fix2.py"
       - "blender_rebuild/validate_s2_body_r2.py"
       - "blender_rebuild/validate_s2_body_r2_entry.py"
       - "blender_rebuild/validate_s2_body_r3.py"
       - "blender_rebuild/ci_s2_r3.sh"
+      - "blender_rebuild/ci_s2_r3_fix2.sh"
       - "blender_rebuild/build_s2_body.py"
       - "blender_rebuild/validate_s2_body.py"
       - "blender_rebuild/build_real_blend.py"
@@ -72,7 +75,7 @@ jobs:
 
       - name: Run fail-fast R3 build and validation
         shell: bash
-        run: bash blender_rebuild/ci_s2_r3.sh
+        run: bash blender_rebuild/ci_s2_r3_fix2.sh
 
       - name: Upload S2 R3 candidate
         uses: actions/upload-artifact@v4
