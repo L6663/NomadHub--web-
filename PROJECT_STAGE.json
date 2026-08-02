@@ -1,121 +1,126 @@
 {
   "project": "NomadHub General3",
   "version": "V1.7",
-  "branch": "fix/s1c-geometry-gates",
-  "updated_at": "2026-08-02T17:47:00+08:00",
+  "branch": "feat/s2-continuous-body",
+  "updated_at": "2026-08-02T18:22:00+08:00",
   "current_stage": {
-    "id": "S1C_ACCEPTED",
-    "name": "S1轴距、轮拱与检修舱结构闭环",
-    "status": "PASS",
-    "summary": "S1C已通过真实Blender 4.2构建、母版与GLB回导坐标验证、静态净距门禁、9帧动态三角面碰撞扫掠、门玻璃父子层级与同步动画验证，以及完整六视图人工复核。S2现可开始，但尚未完成。",
-    "verification_path": "build/output/S1C_VERIFICATION_REPORT.json",
-    "next_stage": "S2",
-    "next_stage_status": "READY_TO_START"
+    "id": "S2_R1",
+    "name": "连续车身控制笼首轮",
+    "status": "MILESTONE_ACCEPTED_S2_IN_PROGRESS",
+    "summary": "S2-R1已通过真实Blender 4.2构建、源拓扑、流形与对称性、冻结坐标、动态碰撞、轮胎开口和GLB回导门禁，并完成透视、正投影与控制笼线框视觉复核。该结论只接受单一连续车身控制笼方向；完整S2仍在进行。",
+    "verification_path": "build/output/S2_R1_VERIFICATION_REPORT.json",
+    "next_revision": "S2_R2",
+    "next_revision_status": "READY_TO_START"
   },
-  "corrected_stage_status": {
+  "stage_status": {
     "S0": {
-      "name": "视觉方向冻结",
       "status": "CONCEPT_ACCEPTED",
-      "note": "保留为视觉概念，不作为CAD工程正投影。"
+      "note": "视觉概念冻结，不作为CAD工程正投影。"
     },
     "S1": {
-      "name": "工程参考规范统一与结构闭环",
       "status": "ACCEPTED",
-      "note": "轴距5.150m；前轴X=-3.245m；后轴X=1.905m；四轮拱、左右独立检修舱坐标、门舱动画和GLB同步动画均已通过自动与视觉验收。"
+      "note": "5.150m轴距、轮拱、门舱位置、铰链、动画和GLB回导均已闭环。",
+      "acceptance_doc": "docs/stages/S1C_ACCEPTANCE.md"
     },
     "S2": {
-      "name": "连续车身灰模",
-      "status": "READY_TO_START",
-      "note": "以S1C_ACCEPTED母版为冻结输入，开始连续车身控制笼、四边面拓扑和门窗轮拱控制环重建；不得移动已冻结的轴位、轮拱中心、门舱位置和铰链轴。"
+      "status": "IN_PROGRESS",
+      "accepted_milestone": "S2_R1_CONTINUOUS_BODY_CAGE",
+      "note": "单一连续车身控制笼已建立；门窗真实开口拓扑、轮拱手工环线、前围细化和产品级曲面尚未完成。"
     },
     "S3": {
-      "name": "结构精模与部件拆分",
-      "status": "BLOCKED_BY_S2",
-      "note": "已有可编辑门、舱、轮组和动画层级，但需在连续车身S2重新通过后继续精模。"
+      "status": "BLOCKED_BY_S2"
     },
     "S4": {
-      "name": "UV展开与Nomad Silver皮肤",
       "status": "PAUSED_BY_AUDIT",
-      "note": "在S2/S3重新通过前不开始正式UV与产品级材质。"
+      "note": "S2/S3通过前不进入正式UV与产品级材质。"
     }
   },
-  "s1c_accepted_artifact": {
-    "workflow": "Build Genuine Blender Project",
+  "s1c_accepted_reference": {
     "workflow_run_id": 30742199911,
-    "workflow_run_number": 21,
-    "workflow_conclusion": "success",
-    "generator_commit": "dc3c03dafe2a8492edc8559a5dc499db559d32aa",
     "artifact_id": 8831711742,
     "artifact_name": "NomadHub-General3-V1.7-S1C-ACCEPTED",
     "artifact_digest": "sha256:a17e38de7e09ee96af0c90714888025a461c32b9a802448125d035971e795eb7",
-    "artifact_expires_at": "2026-08-16T09:45:03Z",
-    "blender_version": "4.2.0",
-    "blend_file": "NomadHub_General3_V1.7_S1C.blend",
-    "blend_bytes": 147105,
     "blend_sha256": "487ad6ae50e54190df0156f1994b33276f82ca7d8554efa2017d34d0bc809ba3",
-    "roundtrip_glb": "NomadHub_General3_V1.7_S1C_Roundtrip.glb",
-    "roundtrip_glb_sha256": "2b738568546f7af653c7d23b58d5f0e34e86294029475043889a4dde9ef0e0af",
-    "verification_sha256": "f5b2e2ba6e2155872394d9b8f6d8770ae45cea82496c5b56668e36cd6b019131",
-    "clearance_sha256": "a74b357f40bb5f5418755df61b7fdd59b25266440f99725146b4c007a45b51cb",
-    "objects": 86,
-    "meshes": 58,
+    "glb_sha256": "2b738568546f7af653c7d23b58d5f0e34e86294029475043889a4dde9ef0e0af"
+  },
+  "s2_r1_accepted_milestone": {
+    "workflow": "Build S2 Continuous Body",
+    "workflow_run_id": 30743243208,
+    "workflow_run_number": 5,
+    "workflow_conclusion": "success",
+    "generator_commit": "e13897bc13b0da02c69f39302793f1c477431326",
+    "artifact_id": 8832036302,
+    "artifact_name": "NomadHub-General3-V1.7-S2-R1",
+    "artifact_digest": "sha256:a1fbe126223505bbfcdf8ddddd57c3cd319cc990b7af7cea819a29b7ed620d3c",
+    "artifact_expires_at": "2026-08-16T10:14:36Z",
+    "blender_version": "4.2.0",
+    "blend_file": "NomadHub_General3_V1.7_S2_R1.blend",
+    "blend_bytes": 161581,
+    "blend_sha256": "29f245dfe9d05f0f735092bff1642c4084b738aebb901b01a963534c8cec4bf2",
+    "glb_file": "NomadHub_General3_V1.7_S2_R1.glb",
+    "glb_bytes": 830680,
+    "glb_sha256": "d76ce7fb5d22b6a6852899b9bca1101bf7d29bf7ed2285447fe041af311743ed",
+    "verification_sha256": "ba00b69799f08c4169412e911a96bcc2098a9063b62b72312022b702672e2566",
+    "body_object": "BODY_S2_CONTROL_CAGE",
+    "objects": 90,
+    "meshes": 62,
     "materials": 7,
-    "blender_actions": 13,
-    "glb_animation_export_mode": "ACTIVE_ACTIONS",
-    "units": "meters",
-    "geometry": {
-      "wheelbase_m": 5.15,
+    "actions": 13,
+    "source_topology": {
+      "vertices": 496,
+      "edges": 976,
+      "triangles": 0,
+      "quads": 480,
+      "ngons": 2,
+      "quad_ratio": 0.995850622406639,
+      "connected_components": 1,
+      "non_manifold_edges": 0,
+      "loose_vertices": 0,
+      "asymmetric_vertices": 0
+    },
+    "control_cage": {
+      "longitudinal_rings": 31,
+      "vertices_per_ring": 16,
+      "modifiers": [
+        "SUBSURF",
+        "BOOLEAN_FRONT_ARCH",
+        "BOOLEAN_REAR_ARCH",
+        "BEVEL"
+      ]
+    },
+    "frozen_geometry": {
+      "overall_length_m": 8.99,
+      "overall_width_m": 2.35,
+      "overall_height_m": 3.05,
       "front_axle_x_m": -3.245,
       "rear_axle_x_m": 1.905,
-      "minimum_wheel_arch_clearance_m": 0.08,
-      "minimum_door_seam_clearance_m": 0.06,
-      "service_hatch_centers_x_m": {
-        "HATCH_L_1": -1.95,
-        "HATCH_L_2": 0.35,
-        "HATCH_L_3": 3.05,
-        "HATCH_R_1": -1.95,
-        "HATCH_R_2": 0.75,
-        "HATCH_R_3": 3.05
-      }
-    },
-    "measured_clearances_m": {
-      "HATCH_L_1_wheel_arch": 0.235,
-      "HATCH_L_2_wheel_arch": 0.495,
-      "HATCH_L_3_wheel_arch": 0.085,
-      "HATCH_R_1_wheel_arch": 0.235,
-      "HATCH_R_2_wheel_arch": 0.095,
-      "HATCH_R_3_wheel_arch": 0.085
+      "wheelbase_m": 5.15
     },
     "dynamic_validation": {
-      "sample_frames": [1, 12, 24, 36, 48, 60, 72, 84, 96],
-      "blend_checked_pairs": 2106,
+      "sample_frames": [1, 24, 48, 72, 96],
+      "blend_checked_pairs": 80,
       "blend_collisions": 0,
-      "glb_checked_pairs": 2106,
+      "glb_checked_pairs": 80,
       "glb_collisions": 0,
-      "door_glass_blend_checked_pairs": 486,
-      "door_glass_blend_collisions": 0,
-      "door_glass_glb_checked_pairs": 486,
-      "door_glass_glb_collisions": 0
+      "wheel_tire_intersections_blend": 0,
+      "wheel_tire_intersections_glb": 0
     },
-    "door_glass_hierarchy": {
-      "DOOR_DRIVER_L_GLASS": "DOOR_DRIVER_L_ROOT",
-      "DOOR_PASSENGER_R_GLASS": "DOOR_PASSENGER_R_ROOT",
-      "DOOR_LIVING_R_GLASS": "DOOR_LIVING_R_ROOT"
+    "visual_review": {
+      "result": "MILESTONE_PASS",
+      "accepted": [
+        "单一连续车身轮廓",
+        "长宽高与轴距比例",
+        "前后轮拱占位开口",
+        "控制笼连续性与整体对称性"
+      ],
+      "carry_to_s2_r2": [
+        "前围与挡风玻璃连接仍偏钝",
+        "轮拱布尔附近存在过渡高光，需要手工环线替代",
+        "门窗和检修舱仍是表面部件，尚未形成真实开口拓扑",
+        "前后端两个Ngon需在后续局部拓扑中消解"
+      ]
     },
-    "door_glass_roundtrip_translation_m": {
-      "DOOR_DRIVER_L_GLASS": 0.2942011027581911,
-      "DOOR_PASSENGER_R_GLASS": 0.2942011027581911,
-      "DOOR_LIVING_R_GLASS": 0.5144105900912246
-    },
-    "visual_evidence": [
-      "NomadHub_General3_V1.7_S1C_Preview.png",
-      "S1C_Left_Orthographic.png",
-      "S1C_Right_Orthographic.png",
-      "S1C_Top_Orthographic.png",
-      "S1C_Left_Open.png",
-      "S1C_Right_Open.png"
-    ],
-    "scope_limit": "本验收只证明S1C坐标、净距、层级、动画和回导可靠。当前车身仍是可编辑结构灰模，不代表S2连续车身、手工四边面重拓扑、A级曲面、正式UV或产品级材质已经完成。"
+    "scope_limit": "S2-R1仅接受连续控制笼里程碑，不代表完整S2、生产级重拓扑、A级曲面、正式UV或产品级材质完成。"
   },
   "s2_frozen_inputs": [
     "overall_length_8.990m",
@@ -131,11 +136,11 @@
     "door_and_hatch_hinge_axes"
   ],
   "next_actions": [
-    "从NomadHub_General3_V1.7_S1C.blend复制建立独立S2工作母版，保留S1C_ACCEPTED文件只读。",
-    "重建单一连续车身控制笼，消除BODY_MAIN与BODY_CAB的箱体拼接逻辑。",
-    "围绕挡风玻璃、A柱、门窗、四轮拱、检修舱和前后围建立可细化的四边面拓扑流。",
-    "保持S1C冻结坐标不变，并在S2继续运行回导和动态碰撞门禁。",
-    "S2通过前不进入正式UV和产品级材质。"
+    "建立S2-R2工作母版并保持S2-R1只读。",
+    "将前后轮拱布尔占位替换为车身源网格中的手工四边面环线。",
+    "建立挡风玻璃、A柱和驾驶舱门周边的局部控制环，改善前围连续性。",
+    "开始门窗与检修舱真实开口拓扑，但不改变S1C冻结坐标和铰链轴。",
+    "继续运行母版/GLB回导、冻结坐标和动态碰撞门禁。"
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
