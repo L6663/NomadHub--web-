@@ -1,9 +1,17 @@
-"""S2-R4 second visual integration repair.
+"""S2-R4 surface-aligned visual integration repair.
 
-R4-F2 replaces the oversized floating windshield frame and box-built cab-door
-surrounds with thin, surface-aligned annular meshes. The accepted R3 source
-cage, all 17 true openings, frozen roots, semantic nodes and 13 actions remain
-unchanged.
+This revision keeps the accepted R3 source cage, all 17 true openings, frozen
+roots, semantic nodes and 13 actions unchanged. It repairs only Web-visible
+presentation geometry:
+
+- places the windshield glass and its annular surround on the actual sloped
+  opening plane instead of behind the cab skin;
+- widens the thin cab-side annular body skin so the subdivided saw-tooth source
+  edge is fully covered without introducing box-built frame bars;
+- hides obsolete compatibility wheel-arch meshes optically while retaining
+  their frozen semantic nodes;
+- reshapes the visible wheel lips so their ends meet the lower body line rather
+  than floating beside the tyres.
 """
 
 import importlib.util
@@ -30,9 +38,7 @@ entry = r4.entry
 clearance = r4.clearance
 
 
-# Match the actual windshield opening: lower edge is forward, upper edge is
-# rearward. The previous -17 degree frame leaned in the opposite direction and
-# sat roughly 300 mm too low.
+# Actual windshield opening: lower edge is forward, upper edge is rearward.
 r4.R4_WINDSHIELD_CENTER = Vector((-4.083, 0.0, 2.560))
 r4.R4_WINDSHIELD_ROTATION_Y = math.radians(30.0)
 
@@ -45,11 +51,31 @@ def make_windshield_material():
     bsdf = material.node_tree.nodes.get("Principled BSDF")
     bsdf.inputs["Base Color"].default_value = (0.010, 0.035, 0.055, 1.0)
     bsdf.inputs["Metallic"].default_value = 0.0
-    bsdf.inputs["Roughness"].default_value = 0.22
+    bsdf.inputs["Roughness"].default_value = 0.24
     if bsdf.inputs.get("Transmission Weight") is not None:
-        bsdf.inputs["Transmission Weight"].default_value = 0.18
+        bsdf.inputs["Transmission Weight"].default_value = 0.16
     if bsdf.inputs.get("Coat Weight") is not None:
-        bsdf.inputs["Coat Weight"].default_value = 0.12
+        bsdf.inputs["Coat Weight"].default_value = 0.10
+    return material
+
+
+def make_hidden_reference_material():
+    material = bpy.data.materials.get("MAT_R4_HIDDEN_ARCH_REFERENCE")
+    if material is None:
+        material = bpy.data.materials.new("MAT_R4_HIDDEN_ARCH_REFERENCE")
+    material.use_nodes = True
+    material.diffuse_color = (0.0, 0.0, 0.0, 0.0)
+    bsdf = material.node_tree.nodes.get("Principled BSDF")
+    bsdf.inputs["Base Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    bsdf.inputs["Alpha"].default_value = 0.0
+    bsdf.inputs["Roughness"].default_value = 1.0
+    try:
+        material.surface_render_method = "DITHERED"
+    except (AttributeError, TypeError):
+        try:
+            material.blend_method = "BLEND"
+        except (AttributeError, TypeError):
+            pass
     return material
 
 
@@ -99,6 +125,7 @@ def replace_with_box_mesh(obj, dimensions, location, rotation, material):
     obj["s2_r4_dimensions_baked"] = True
     obj["s2_r4_visual_role"] = "inset_windshield_glass"
     obj["s2_r4_f2_rebuilt_mesh"] = True
+    obj["s2_r4_f2_opening_plane_aligned"] = True
 
 
 def side_surface_y(x, side_sign):
@@ -118,8 +145,6 @@ def make_side_ring(
     role,
 ):
     r4.remove_object(name)
-    ox0, ox1, oz0, oz1 = outer_bounds
-    ix0, ix1, iz0, iz1 = inner_bounds
 
     def point(x, z, offset):
         return (x, side_surface_y(x, side_sign) + side_sign * offset, z)
@@ -180,9 +205,6 @@ def make_side_ring(
 
 
 def bury_old_cab_frame_markers(body_root, body_material, trim_material):
-    # Preserve all legacy names used by the Web and validators, but remove their
-    # visible box-frame appearance. They remain tiny semantic markers inside the
-    # body and are not part of the rendered exterior.
     index = 0
     for side in ("L", "R"):
         for suffix in ("BOTTOM", "TOP", "FRONT", "REAR"):
@@ -213,35 +235,65 @@ def bury_old_cab_frame_markers(body_root, body_material, trim_material):
 
 
 def build_cab_surface_rings(body_root, body_material, trim_material):
-    outer = (-4.440, -3.820, 0.380, 2.260)
-    body_inner = (-4.370, -3.910, 0.490, 2.130)
-    seam_outer = body_inner
-    seam_inner = (-4.355, -3.925, 0.505, 2.115)
+    # The broad upper body band masks the irregular Catmull-Clark boundary of
+    # the real cab-door opening. It remains a thin tapered annular skin that
+    # follows section_dimensions(x), not four independent frame boxes.
+    outer = (-4.455, -3.790, 0.340, 2.400)
+    body_inner = (-4.365, -3.925, 0.495, 2.055)
+    seam_outer = (-4.360, -3.930, 0.505, 2.115)
+    seam_inner = (-4.340, -3.950, 0.525, 2.095)
     for side, side_sign in (("L", -1.0), ("R", 1.0)):
-        make_side_ring(
+        ring = make_side_ring(
             f"R4_CAB_RING_{side}",
             side_sign,
             outer,
             body_inner,
-            0.010,
-            -0.012,
+            0.012,
+            -0.006,
             body_material,
             body_root,
-            0.010,
+            0.012,
             "surface_aligned_body_surround",
         )
-        make_side_ring(
+        ring["s2_r4_f2_boundary_mask_top_m"] = 2.400
+        seam = make_side_ring(
             f"R4_CAB_SEAM_{side}",
             side_sign,
             seam_outer,
             seam_inner,
-            0.014,
-            0.009,
+            0.018,
+            0.013,
             trim_material,
             body_root,
             0.003,
             "surface_aligned_inner_seam",
         )
+        seam["s2_r4_f2_door_clearance_m"] = 0.007
+
+
+def make_surface_wheel_lip(name, center_x, side_sign, material, parent):
+    r4.remove_object(name)
+    points = []
+    radius_x = 0.650
+    radius_z = 0.685
+    center_z = 0.280
+    side_y = side_sign * 1.155
+    for index in range(41):
+        theta = math.pi - math.pi * index / 40.0
+        points.append(
+            (
+                center_x + radius_x * math.cos(theta),
+                side_y,
+                center_z + radius_z * math.sin(theta),
+            )
+        )
+    lip = r4.make_curve_polyline(name, points, 0.009, material, parent)
+    lip["s2_r4_web_surface"] = True
+    lip["s2_r4_visual_role"] = "integrated_visual_wheel_lip"
+    lip["s2_r4_f2_lower_body_connection_z_m"] = center_z
+    lip["s2_r4_f2_radius_x_m"] = radius_x
+    lip["s2_r4_f2_radius_z_m"] = radius_z
+    return lip
 
 
 def apply_r4_f2_surface_repairs():
@@ -252,6 +304,8 @@ def apply_r4_f2_surface_repairs():
         raise RuntimeError("R4-F2 body root/materials missing")
 
     r4.bury_legacy_windshield_markers(body_material)
+    normal = Matrix.Rotation(r4.R4_WINDSHIELD_ROTATION_Y, 4, "Y") @ Vector((1.0, 0.0, 0.0))
+
     surround = r4.make_ring_mesh(
         "R4_WINDSHIELD_SURROUND",
         1.98,
@@ -262,8 +316,14 @@ def apply_r4_f2_surface_repairs():
         body_material,
         body_root,
     )
+    surround.location = r4.R4_WINDSHIELD_CENTER - normal * 0.018
     surround["s2_r4_visual_role"] = "continuous_windshield_surround"
     surround["s2_r4_f2_surface_aligned"] = True
+    surround["s2_r4_f2_outward_offset_m"] = 0.018
+    for modifier in surround.modifiers:
+        if modifier.type == "BEVEL":
+            modifier.width = min(modifier.width, 0.007)
+
     trim = r4.make_ring_mesh(
         "R4_WINDSHIELD_TRIM",
         1.82,
@@ -274,14 +334,20 @@ def apply_r4_f2_surface_repairs():
         trim_material,
         body_root,
     )
+    trim.location = r4.R4_WINDSHIELD_CENTER - normal * 0.022
     trim["s2_r4_visual_role"] = "continuous_windshield_inner_trim"
     trim["s2_r4_f2_surface_aligned"] = True
+    trim["s2_r4_f2_outward_offset_m"] = 0.022
+    for modifier in trim.modifiers:
+        if modifier.type == "BEVEL":
+            modifier.width = min(modifier.width, 0.005)
 
     glass = bpy.data.objects.get("GLASS_WINDSHIELD")
     if glass is None:
         raise RuntimeError("GLASS_WINDSHIELD missing")
-    normal = Matrix.Rotation(r4.R4_WINDSHIELD_ROTATION_Y, 4, "Y") @ Vector((1.0, 0.0, 0.0))
-    glass_location = r4.R4_WINDSHIELD_CENTER + normal * 0.028
+    # Put the glass behind the outward face of the surround but in front of the
+    # source body skin so the complete rectangle remains visible.
+    glass_location = r4.R4_WINDSHIELD_CENTER - normal * 0.010
     replace_with_box_mesh(
         glass,
         (0.040, 1.700, 0.680),
@@ -293,7 +359,7 @@ def apply_r4_f2_surface_repairs():
     bury_old_cab_frame_markers(body_root, body_material, trim_material)
     build_cab_surface_rings(body_root, body_material, trim_material)
 
-    # Keep the validated compatibility liners and the R4 wheel lips.
+    hidden_arch_material = make_hidden_reference_material()
     for old_name, new_name, center_x, side_sign in (
         ("WHEEL_ARCH_FL", "R4_WHEEL_LIP_FL", builder.FRONT_AXLE_X_M, -1.0),
         ("WHEEL_ARCH_FR", "R4_WHEEL_LIP_FR", builder.FRONT_AXLE_X_M, 1.0),
@@ -304,10 +370,11 @@ def apply_r4_f2_surface_repairs():
         if old is None:
             raise RuntimeError(f"compatibility wheel liner missing: {old_name}")
         old.data.materials.clear()
-        old.data.materials.append(trim_material)
-        old.location.y = -side_sign * 0.020
+        old.data.materials.append(hidden_arch_material)
         old["s2_r4_visual_role"] = "recessed_compatibility_wheel_liner"
-        r4.make_visual_wheel_lip(new_name, center_x, side_sign, body_material, body_root)
+        old["s2_r4_f2_optically_hidden"] = True
+        old["s2_r4_f2_semantic_reference_preserved"] = True
+        make_surface_wheel_lip(new_name, center_x, side_sign, body_material, body_root)
 
 
 r4.apply_r4_surface_repairs = apply_r4_f2_surface_repairs
@@ -322,16 +389,20 @@ def patch_fix2_manifest(path):
             "windshield_center_m": [-4.083, 0.0, 2.560],
             "windshield_rotation_y_deg": 30.0,
             "windshield_surface_aligned": True,
+            "windshield_glass_outward_offset_m": 0.010,
             "cab_surface_aligned_annular_rings": 2,
             "cab_surface_aligned_seam_rings": 2,
+            "cab_boundary_mask_top_m": 2.400,
             "legacy_cab_box_frames_buried": 16,
+            "legacy_wheel_arch_nodes_optically_hidden": 4,
+            "wheel_lip_lower_connection_z_m": 0.280,
         }
     )
     payload["stage_status"] = "R4_F2_SURFACE_ALIGNED_VISUAL_CANDIDATE"
     payload["scope_note"] = (
         "R4-F2 keeps the accepted source topology, 17 openings and frozen Web/animation "
-        "contract while replacing the floating windshield and box-built cab frames with "
-        "thin surface-aligned annular meshes. Manual evidence review remains required."
+        "contract while placing the windshield on its real opening plane, masking the "
+        "cab-door boundary with tapered annular skins and removing double wheel-arch visuals."
     )
     manifest_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
