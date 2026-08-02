@@ -7,6 +7,7 @@ on:
       - "blender_rebuild/build_s2_body_r2.py"
       - "blender_rebuild/build_s2_body_r2_entry.py"
       - "blender_rebuild/build_s2_body_r2_clearance.py"
+      - "blender_rebuild/preflight_s2_body_r2.py"
       - "blender_rebuild/validate_s2_body_r2.py"
       - "blender_rebuild/validate_s2_body_r2_entry.py"
       - "blender_rebuild/build_s2_body.py"
@@ -20,10 +21,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: s2-r2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-s2-r2:
     runs-on: ubuntu-latest
-    timeout-minutes: 65
+    timeout-minutes: 40
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
@@ -37,16 +42,26 @@ jobs:
             libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 \
             libxkbcommon0 libsm6 libice6 libxxf86vm1
 
-      - name: Download Blender 4.2 LTS
+      - name: Restore Blender 4.2 LTS cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            blender-4.2.0-linux-x64
+            blender.tar.xz
+          key: ${{ runner.os }}-blender-4.2.0-a51f293548ad
+
+      - name: Prepare Blender 4.2 LTS
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p build/source build/output
-          curl --fail --location --retry 4 \
-            "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
-            --output blender.tar.xz
-          echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
-          tar -xf blender.tar.xz
+          if [ ! -x blender-4.2.0-linux-x64/blender ]; then
+            curl --fail --location --retry 4 \
+              "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
+              --output blender.tar.xz
+            echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
+            tar -xf blender.tar.xz
+          fi
           ./blender-4.2.0-linux-x64/blender --version
 
       - name: Rebuild frozen S1C source
@@ -81,7 +96,30 @@ jobs:
           cp build/source/S1C_SOURCE_MANIFEST.json build/output/S2_R2_BUILD_MANIFEST.json
           cp build/source/S1C_Collision_Clearance.json build/output/S1C_Collision_Clearance.json
 
-      - name: Build S2 R2 true openings and wheel-well clearance topology
+      - name: Fast preflight before proof rendering
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --python blender_rebuild/preflight_s2_body_r2.py \
+            -- \
+            --report build/output/S2_R2_PREFLIGHT_REPORT.json
+          test -s build/output/S2_R2_PREFLIGHT_REPORT.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path("build/output/S2_R2_PREFLIGHT_REPORT.json").read_text())
+          assert report["status"] == "PASS"
+          assert report["opening_boundaries"]["loop_count"] == 17
+          assert report["opening_boundaries"]["closed_loop_count"] == 17
+          assert report["wheel_body_clearance"]["result"] == "PASS"
+          print("S2_R2_PREFLIGHT_GATE_PASS")
+          PY
+
+      - name: Build S2 R2 evidence and roundtrip package
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -117,6 +155,7 @@ jobs:
             S2_R2_Left_Wireframe.png \
             S2_R2_Right_Wireframe.png \
             S2_R2_BUILD_MANIFEST.json \
+            S2_R2_PREFLIGHT_REPORT.json \
             S1C_Collision_Clearance.json; do
             test -s "build/output/${file}"
           done
@@ -143,9 +182,12 @@ jobs:
 
           manifest_path = Path("build/output/S2_R2_BUILD_MANIFEST.json")
           report_path = Path("build/output/S2_R2_VERIFICATION_REPORT.json")
+          preflight_path = Path("build/output/S2_R2_PREFLIGHT_REPORT.json")
           manifest = json.loads(manifest_path.read_text())
           report = json.loads(report_path.read_text())
+          preflight = json.loads(preflight_path.read_text())
 
+          assert preflight["status"] == "PASS"
           assert manifest["stage"] == "S2"
           assert manifest["iteration"] == "R2"
           assert manifest["body_object"] == "BODY_S2_CONTROL_CAGE"
@@ -172,6 +214,8 @@ jobs:
 
           manifest["stage_status"] = "R2_TRUE_OPENINGS_TECHNICALLY_VALIDATED_VISUAL_REVIEW_REQUIRED"
           manifest["s2_r2_ready_for_visual_review"] = True
+          manifest["preflight_report"] = preflight_path.name
+          manifest["preflight_sha256"] = hashlib.sha256(preflight_path.read_bytes()).hexdigest()
           manifest["verification_report"] = report_path.name
           manifest["verification_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
           manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -185,6 +229,7 @@ jobs:
               NomadHub_General3_V1.7_S2_R2.glb \
               S1C_Collision_Clearance.json \
               S2_R2_BUILD_MANIFEST.json \
+              S2_R2_PREFLIGHT_REPORT.json \
               S2_R2_Left_Orthographic.png \
               S2_R2_Left_Wireframe.png \
               S2_R2_Preview.png \
@@ -196,8 +241,6 @@ jobs:
             sha256sum -c SHA256SUMS.txt
           )
 
-          cat build/output/S2_R2_VERIFICATION_REPORT.json
-
       - name: Upload S2 R2 candidate
         uses: actions/upload-artifact@v4
         with:
@@ -206,3 +249,15 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-S2-R2-FAILURE-DIAGNOSTICS
+          path: |
+            build/output/*.json
+            build/output/*.txt
+          if-no-files-found: ignore
+          retention-days: 7
+          compression-level: 1
