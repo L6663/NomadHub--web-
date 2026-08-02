@@ -2,41 +2,47 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T11:57:00+08:00",
+  "updated_at": "2026-08-02T12:59:00+08:00",
   "current_stage": {
-    "id": "S3",
-    "name": "结构精模与部件拆分",
+    "id": "S4",
+    "name": "UV展开与Nomad Silver皮肤",
     "status": "IN_PROGRESS",
     "progress_percent": 0,
-    "started_at": "2026-08-02T11:57:00+08:00",
-    "goal": "在S2 R19连续车身灰模基础上完成产品级结构精修与部件拆分，包括前脸、灯组、保险杠、窗框、密封胶条、车门、检修舱、轮拱唇边、侧裙、后视镜、车尾附件和车顶设备外形，同时保持S1 AMD-001冻结比例与现有真实开孔、轮心层级。",
+    "started_at": "2026-08-02T12:59:00+08:00",
+    "goal": "以S3 R3最终精模为唯一结构基础，完成整车UV分区、左右独立车身皮肤、前后包角连续、品牌文字方向、门缝窗洞轮拱遮罩和纹理审查。",
     "entry_basis": {
-      "s2_review": "R19_FINAL PASSED",
-      "base_asset": "NomadHub_RV_V1.7_S2_R19_Candidate.glb",
+      "s3_review": "R3_FINAL PASSED",
+      "base_asset": "NomadHub_RV_V1.7_S3_R3_Final.glb",
+      "s3_audit": "docs/stages/S3/S3_R3_Final_Audit.json",
       "s1_amendment": "NH-V1.7-S1-AMD-001"
     },
     "review_status": "NOT_REVIEWED"
   },
   "previous_stage": {
-    "id": "S2",
-    "name": "Blender连续车身灰模",
+    "id": "S3",
+    "name": "结构精模与部件拆分",
     "status": "PASSED",
     "progress_percent": 100,
     "review_status": "PASSED",
-    "review_round": "R19_FINAL",
+    "review_round": "R3_FINAL",
     "metrics": {
-      "geometry_nodes": 77,
-      "graph_nodes": 92,
-      "vertices": 13250,
-      "triangles": 25554,
-      "materials": 11,
+      "geometry_nodes": 78,
+      "graph_nodes": 118,
+      "vertices": 20969,
+      "triangles": 40534,
+      "materials": 14,
       "body_components": 1,
-      "normal_coverage": "77/77 primitives",
+      "normal_coverage": "78/78 primitives",
       "body_outward_face_ratio": 1.0,
       "body_width_m": 2.349994,
-      "full_scene_length_m": 8.99,
-      "full_scene_height_m": 3.05
-    }
+      "minimum_opening_clearance_mm": 12.381
+    },
+    "deliverables": [
+      "NomadHub_RV_V1.7_S3_R3_Final.glb",
+      "NomadHub_RV_V1.7_S3_R3_OpenState.glb",
+      "docs/stages/S3/S3_R3_Final_Review.md",
+      "docs/stages/S3/S3_R3_Final_Audit.json"
+    ]
   },
   "frozen_reference": {
     "s1_status": "PASSED",
@@ -48,17 +54,17 @@
     "rear_overhang_m": 2.59
   },
   "next_stage": {
-    "id": "S4",
-    "name": "UV展开与Nomad Silver皮肤",
-    "status": "BLOCKED_BY_S3"
+    "id": "S5",
+    "name": "PBR材质与模型优化",
+    "status": "BLOCKED_BY_S4"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
     {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100,"amendment":"AMD-001"},
     {"id":"S2","name":"Blender连续车身灰模","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R19_FINAL"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"IN_PROGRESS","progress_percent":0},
-    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"BLOCKED_BY_S3","progress_percent":0},
-    {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S3","name":"结构精模与部件拆分","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R3_FINAL"},
+    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"IN_PROGRESS","progress_percent":0},
+    {"id":"S5","name":"PBR材质与模型优化","status":"BLOCKED_BY_S4","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
     {"id":"S7","name":"Three.js正式接入","status":"NOT_STARTED","progress_percent":0},
     {"id":"S8","name":"入场动画与模块交互","status":"NOT_STARTED","progress_percent":0},
