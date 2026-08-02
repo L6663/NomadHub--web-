@@ -2,44 +2,53 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T11:08:00+08:00",
+  "updated_at": "2026-08-02T11:25:00+08:00",
   "current_stage": {
     "id": "S2",
     "name": "Blender连续车身灰模",
-    "status": "REWORK_REQUIRED",
-    "progress_percent": 90,
+    "status": "IN_PROGRESS",
+    "progress_percent": 95,
     "started_at": "2026-08-01T23:40:00+08:00",
-    "review_status": "FAILED_FINAL_UNIFIED_REVIEW",
-    "review_round": "R14_FINAL_UNIFIED_REVIEW",
-    "review_summary": "R14已解决轮位、真实窗洞、独立门板、轮心层级、NORMAL覆盖和面数预算问题，但最终统一审查发现BODY_SHELL约95.66%主体面法线朝内、主体宽度2.38598m超出2.350m冻结值约35.98mm、线框仍为密集三角化拓扑且前脸基础轮廓未达到冻结参考，因此S2不得关闭。",
-    "blocking_issues": [
-      "BODY_SHELL约95.66%主体面法线朝内，单面材质在Three.js中存在大面积剔除风险",
-      "BODY_SHELL宽度2.38598m，超过2.350m冻结值约35.98mm",
-      "主体拓扑为密集三角化表面，不适合作为S3受控精模母版",
-      "挡风玻璃、A柱、前围和保险杠基础轮廓仍需修正",
-      "5.150m轴距与2.590m后悬尚未正式写回S1冻结规范"
+    "review_status": "READY_FOR_FINAL_REVIEW",
+    "review_round": "R16_CANDIDATE",
+    "review_summary": "R16已修正R14的主体法线反向、车身宽度超差、节点数量偏高与面数偏高问题。BODY_SHELL外向面比例100%，主体宽度2.34990m，GLB 79个图元全部包含POSITION和NORMAL，三角面降至34,363。当前只剩驾驶舱基础轮廓、控制笼可编辑性和S1轴距修订冻结需要最终统一审查。",
+    "resolved_issues": [
+      "BODY_SHELL外向面比例从约4.34%修正为100%",
+      "BODY_SHELL宽度从2.38598m修正为2.34990m",
+      "GLB 79/79图元包含POSITION与NORMAL",
+      "几何节点从83降至79",
+      "三角面从48,891降至34,363",
+      "前后保险杠缩小并改为车身色主体加薄型下唇",
+      "挡风玻璃调整为上窄下宽梯形",
+      "静态灯具、尾灯和后视镜节点完成合并"
+    ],
+    "remaining_review_items": [
+      "驾驶舱、A柱与前围是否达到S2视觉门禁",
+      "当前三角化控制笼是否足以支持S3 Blender精模",
+      "5.150m轴距与2.590m后悬是否正式写回S1修订规范",
+      "尾部平板感是否允许留到S3"
     ],
     "working_outputs": [
-      "NomadHub_RV_V1.7_S2_R14_Candidate.glb",
-      "S2_R14_12_View_Solid_Review.png",
-      "S2_R14_Closeup_Review.png",
-      "S2_R14_Wireframe_Review.png",
-      "docs/stages/S2/S2_R14_Final_Unified_Review.md"
+      "NomadHub_RV_V1.7_S2_R16_Candidate.glb",
+      "S2_R16_12_View_Solid_Review.png",
+      "S2_R16_Closeup_Review.png",
+      "S2_R16_Wireframe_Review.png",
+      "docs/stages/S2/S2_R16_Candidate_Review.md"
     ],
     "metrics": {
-      "file_size_mb": 1.071,
-      "geometry_nodes": 83,
-      "graph_nodes": 98,
-      "vertices": 25217,
-      "triangles": 48891,
+      "file_size_mb": 0.738,
+      "geometry_nodes": 79,
+      "graph_nodes": 94,
+      "vertices": 17794,
+      "triangles": 34363,
       "materials": 11,
       "body_components": 1,
-      "normal_coverage": "83/83 primitives",
-      "body_outward_face_ratio": 0.043374,
-      "body_inward_face_ratio": 0.956626,
-      "body_width_m": 2.38598,
+      "normal_coverage": "79/79 primitives",
+      "body_outward_face_ratio": 1.0,
+      "body_inward_face_ratio": 0.0,
+      "body_width_m": 2.34990,
       "target_body_width_m": 2.35,
-      "body_width_error_mm": 35.98
+      "body_width_error_mm": -0.10
     }
   },
   "previous_stage": {
@@ -47,7 +56,7 @@
     "name": "工程参考规范统一",
     "status": "CHANGE_REQUESTED",
     "progress_percent": 98,
-    "change_scope": "轴距、后悬和后轴位置修订待写回；主体宽度必须继续保持2.350m冻结值。",
+    "change_scope": "轴距、后悬和后轴位置修订待最终冻结；主体宽度继续保持2.350m。",
     "previous_dimensions": {
       "wheelbase_m": 4.5,
       "rear_overhang_m": 3.23,
@@ -62,14 +71,14 @@
   "next_stage": {
     "id": "S3",
     "name": "结构精模与部件拆分",
-    "status": "BLOCKED_BY_S2",
-    "entry_condition": "修正BODY_SHELL法线方向和主体宽度，完成可编辑控制环及驾驶舱基础轮廓，冻结S1轴距修订，并通过下一轮最终视觉与GLB统一审查。"
+    "status": "BLOCKED_BY_S2_FINAL_REVIEW",
+    "entry_condition": "R16通过最终视觉与GLB统一审查，并正式冻结S1轴距修订后解锁。"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
     {"id":"S1","name":"工程参考规范统一","status":"CHANGE_REQUESTED","progress_percent":98,"change_scope":"轴距/后悬待冻结，主体宽度保持2.350m"},
-    {"id":"S2","name":"Blender连续车身灰模","status":"REWORK_REQUIRED","progress_percent":90,"review_status":"FAILED_FINAL_UNIFIED_REVIEW","review_round":"R14_FINAL_UNIFIED_REVIEW"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2","progress_percent":0},
+    {"id":"S2","name":"Blender连续车身灰模","status":"IN_PROGRESS","progress_percent":95,"review_status":"READY_FOR_FINAL_REVIEW","review_round":"R16_CANDIDATE"},
+    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2_FINAL_REVIEW","progress_percent":0},
     {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
