@@ -6,6 +6,7 @@ from pathlib import Path
 
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 
 EXPECTED_WHEELS = {
@@ -46,6 +47,38 @@ EXPECTED_ANIMATION_ROOTS = (
 TOLERANCE_M = 0.002
 MIN_WHEEL_ARCH_CLEARANCE_M = 0.080
 MIN_DOOR_SEAM_CLEARANCE_M = 0.060
+ANIMATION_SAMPLE_FRAMES = (1, 12, 24, 36, 48, 60, 72, 84, 96)
+MOVING_GROUPS = {
+    "DOOR_DRIVER_L_ROOT": ("DOOR_DRIVER_L", "MIRROR_L_HOUSING", "MIRROR_L_GLASS"),
+    "DOOR_PASSENGER_R_ROOT": ("DOOR_PASSENGER_R", "MIRROR_R_HOUSING", "MIRROR_R_GLASS"),
+    "DOOR_LIVING_R_ROOT": ("DOOR_LIVING_R",),
+    "HATCH_L_1_ROOT": ("HATCH_L_1",),
+    "HATCH_L_2_ROOT": ("HATCH_L_2",),
+    "HATCH_L_3_ROOT": ("HATCH_L_3",),
+    "HATCH_R_1_ROOT": ("HATCH_R_1",),
+    "HATCH_R_2_ROOT": ("HATCH_R_2",),
+    "HATCH_R_3_ROOT": ("HATCH_R_3",),
+}
+STATIC_COLLISION_OBJECTS = (
+    "BODY_MAIN",
+    "BODY_CAB",
+    "FRONT_BUMPER",
+    "REAR_BUMPER",
+    "SIDE_SKIRT_L_FRONT",
+    "SIDE_SKIRT_L_MID",
+    "SIDE_SKIRT_L_REAR",
+    "SIDE_SKIRT_R_FRONT",
+    "SIDE_SKIRT_R_MID",
+    "SIDE_SKIRT_R_REAR",
+    "WHEEL_ARCH_FL",
+    "WHEEL_ARCH_FR",
+    "WHEEL_ARCH_RL",
+    "WHEEL_ARCH_RR",
+    "WHEEL_FL_TIRE",
+    "WHEEL_FR_TIRE",
+    "WHEEL_RL_TIRE",
+    "WHEEL_RR_TIRE",
+)
 
 
 def parse_args():
@@ -72,6 +105,73 @@ def interval_distance(a_min, a_max, b_min, b_max):
     if b_max < a_min:
         return a_min - b_max
     return -min(a_max, b_max) + max(a_min, b_min)
+
+
+def world_bvh(obj, depsgraph):
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    try:
+        if not mesh.vertices or not mesh.polygons:
+            return None
+        vertices = [evaluated.matrix_world @ vertex.co for vertex in mesh.vertices]
+        polygons = [tuple(polygon.vertices) for polygon in mesh.polygons]
+        return BVHTree.FromPolygons(vertices, polygons, all_triangles=False, epsilon=1e-6)
+    finally:
+        evaluated.to_mesh_clear()
+
+
+def animation_collision_sweep():
+    scene = bpy.context.scene
+    collisions = []
+    missing = []
+    checked_pairs = 0
+    for frame in ANIMATION_SAMPLE_FRAMES:
+        scene.frame_set(frame)
+        bpy.context.view_layer.update()
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        static_bvhs = {}
+        for static_name in STATIC_COLLISION_OBJECTS:
+            static_obj = bpy.data.objects.get(static_name)
+            if static_obj is None:
+                missing.append(static_name)
+                continue
+            static_bvhs[static_name] = world_bvh(static_obj, depsgraph)
+
+        for root_name, mesh_names in MOVING_GROUPS.items():
+            if bpy.data.objects.get(root_name) is None:
+                missing.append(root_name)
+                continue
+            for mesh_name in mesh_names:
+                moving_obj = bpy.data.objects.get(mesh_name)
+                if moving_obj is None:
+                    missing.append(mesh_name)
+                    continue
+                moving_bvh = world_bvh(moving_obj, depsgraph)
+                if moving_bvh is None:
+                    continue
+                for static_name, static_bvh in static_bvhs.items():
+                    if static_bvh is None:
+                        continue
+                    checked_pairs += 1
+                    overlap = moving_bvh.overlap(static_bvh)
+                    if overlap:
+                        collisions.append(
+                            {
+                                "frame": frame,
+                                "root": root_name,
+                                "moving_mesh": mesh_name,
+                                "static_mesh": static_name,
+                                "triangle_overlap_pairs": len(overlap),
+                            }
+                        )
+    scene.frame_set(1)
+    return {
+        "sample_frames": list(ANIMATION_SAMPLE_FRAMES),
+        "checked_pairs": checked_pairs,
+        "missing_objects": sorted(set(missing)),
+        "collisions": collisions,
+        "result": "PASS" if not collisions and not missing else "FAIL",
+    }
 
 
 def collect_scene_metrics(label):
@@ -185,6 +285,17 @@ def collect_scene_metrics(label):
     if action_count < len(EXPECTED_ANIMATION_ROOTS):
         failures.append(f"action count {action_count} < {len(EXPECTED_ANIMATION_ROOTS)}")
 
+    animation_sweep = animation_collision_sweep()
+    if animation_sweep["result"] != "PASS":
+        for missing_name in animation_sweep["missing_objects"]:
+            failures.append(f"animation sweep object missing: {missing_name}")
+        for collision in animation_sweep["collisions"]:
+            failures.append(
+                "animation collision "
+                f"frame={collision['frame']} moving={collision['moving_mesh']} "
+                f"static={collision['static_mesh']} pairs={collision['triangle_overlap_pairs']}"
+            )
+
     values.update(
         {
             "wheel_root_x_m": wheel_x,
@@ -192,6 +303,7 @@ def collect_scene_metrics(label):
             "service_hatch_root_x_m": hatch_x,
             "service_hatch_clearance": clearance_rows,
             "actions": action_count,
+            "animation_collision_sweep": animation_sweep,
             "objects": len(bpy.data.objects),
             "meshes": len(bpy.data.meshes),
             "failures": failures,
@@ -222,6 +334,8 @@ def compare_roundtrip(blend_metrics, glb_metrics):
                 failures.append(f"{name} roundtrip delta {delta:.6f} > 0.002")
     if glb_metrics.get("actions", 0) < len(EXPECTED_ANIMATION_ROOTS):
         failures.append("GLB animation action count below 13")
+    if glb_metrics.get("animation_collision_sweep", {}).get("result") != "PASS":
+        failures.append("GLB animation collision sweep failed")
     return failures
 
 
@@ -243,7 +357,7 @@ def main():
     failures.extend(roundtrip_failures)
 
     report = {
-        "schema": "nomadhub-s1c-roundtrip-verification-v1",
+        "schema": "nomadhub-s1c-roundtrip-verification-v2",
         "stage": "S1C",
         "blend": blend_metrics,
         "glb_roundtrip": glb_metrics,
