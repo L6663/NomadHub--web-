@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "blender_rebuild/build_s2_body_r2.py"
+      - "blender_rebuild/build_s2_body_r2_entry.py"
       - "blender_rebuild/validate_s2_body_r2.py"
       - "blender_rebuild/build_s2_body.py"
       - "blender_rebuild/validate_s2_body.py"
@@ -86,7 +87,7 @@ jobs:
           set -euo pipefail
           ./blender-4.2.0-linux-x64/blender \
             --background build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
-            --python blender_rebuild/build_s2_body_r2.py \
+            --python blender_rebuild/build_s2_body_r2_entry.py \
             -- \
             --output build/output/NomadHub_General3_V1.7_S2_R2.blend \
             --roundtrip build/output/NomadHub_General3_V1.7_S2_R2.glb \
