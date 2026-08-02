@@ -1,0 +1,147 @@
+name: Build S2 Continuous Body
+
+on:
+  pull_request:
+    branches: [fix/s1c-geometry-gates]
+    paths:
+      - "blender_rebuild/build_s2_continuous_body.py"
+      - "blender_rebuild/validate_s2_continuous_body.py"
+      - ".github/workflows/build-s2-continuous-body.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-s2-r1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout S2 branch
+        uses: actions/checkout@v4
+
+      - name: Install Blender runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 \
+            libxkbcommon0 libsm6 libice6 libxxf86vm1
+
+      - name: Download Blender 4.2 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/output
+          curl --fail --location --retry 4 \
+            "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
+            --output blender.tar.xz
+          echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
+          tar -xf blender.tar.xz
+          ./blender-4.2.0-linux-x64/blender --version
+
+      - name: Rebuild frozen S1C source
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background \
+            --python blender_rebuild/build_real_blend.py \
+            -- \
+            --output build/output/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --roundtrip build/output/NomadHub_General3_V1.7_S1C_SOURCE.glb \
+            --manifest build/output/S1C_SOURCE_MANIFEST.json \
+            --preview build/output/S1C_SOURCE_UNUSED.png \
+            --clearance build/output/S1C_Collision_Clearance.json
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          clearance = json.loads(Path("build/output/S1C_Collision_Clearance.json").read_text())
+          assert clearance["result"] == "PASS"
+          assert clearance["wheelbase_actual_m"] == 5.15
+          print("S1C_FROZEN_SOURCE_REBUILT")
+          PY
+
+      - name: Build S2-R1 continuous body cage
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/output/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --python blender_rebuild/build_s2_continuous_body.py \
+            -- \
+            --output build/output/NomadHub_General3_V1.7_S2_R1.blend \
+            --glb build/output/NomadHub_General3_V1.7_S2_R1.glb \
+            --manifest build/output/S2_R1_BUILD_MANIFEST.json \
+            --preview build/output/S2_R1_Preview.png \
+            --left build/output/S2_R1_Left_Orthographic.png \
+            --wireframe build/output/S2_R1_Wireframe.png
+
+      - name: Validate S2 topology, frozen geometry and GLB round trip
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          test -s build/output/NomadHub_General3_V1.7_S2_R1.blend
+          test -s build/output/NomadHub_General3_V1.7_S2_R1.glb
+          test -s build/output/S2_R1_BUILD_MANIFEST.json
+          test -s build/output/S2_R1_Preview.png
+          test -s build/output/S2_R1_Left_Orthographic.png
+          test -s build/output/S2_R1_Wireframe.png
+
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/output/NomadHub_General3_V1.7_S2_R1.blend \
+            --python blender_rebuild/validate_s2_continuous_body.py \
+            -- \
+            --glb build/output/NomadHub_General3_V1.7_S2_R1.glb \
+            --manifest build/output/S2_R1_BUILD_MANIFEST.json \
+            --report build/output/S2_R1_VERIFICATION_REPORT.json
+
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          manifest_path = Path("build/output/S2_R1_BUILD_MANIFEST.json")
+          report_path = Path("build/output/S2_R1_VERIFICATION_REPORT.json")
+          manifest = json.loads(manifest_path.read_text())
+          report = json.loads(report_path.read_text())
+
+          assert manifest["stage"] == "S2_R1"
+          assert manifest["body_object"] == "BODY_S2_CONTROL_CAGE"
+          assert manifest["body_topology"]["quad_ratio"] >= 0.995
+          assert manifest["body_topology"]["triangles"] == 0
+          assert report["status"] == "PASS"
+          assert report["s2_r1_ready_for_visual_review"] is True
+
+          manifest["stage_status"] = "TECHNICAL_PASS_VISUAL_REVIEW_PENDING"
+          manifest["verification_report"] = report_path.name
+          manifest["verification_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+          manifest_path.write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          print("S2_R1_TECHNICAL_GATE_PASS")
+          PY
+
+          rm -f build/output/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+                build/output/NomadHub_General3_V1.7_S1C_SOURCE.glb \
+                build/output/S1C_SOURCE_MANIFEST.json
+          sha256sum build/output/* > build/output/SHA256SUMS.txt
+          cat build/output/S2_R1_VERIFICATION_REPORT.json
+
+      - name: Upload S2-R1 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-General3-V1.7-S2-R1
+          path: build/output/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
