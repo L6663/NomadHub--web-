@@ -12,14 +12,14 @@ DOOR_GLASS = (
     (
         "DOOR_DRIVER_L_GLASS",
         "DOOR_DRIVER_L_ROOT",
-        (0.56, 0.025, 0.60),
-        (0.43, -0.040, 1.36),
+        (0.36, 0.025, 0.58),
+        (0.26, -0.040, 1.36),
     ),
     (
         "DOOR_PASSENGER_R_GLASS",
         "DOOR_PASSENGER_R_ROOT",
-        (0.56, 0.025, 0.60),
-        (0.43, 0.040, 1.36),
+        (0.36, 0.025, 0.58),
+        (0.26, 0.040, 1.36),
     ),
     (
         "DOOR_LIVING_R_GLASS",
@@ -114,16 +114,13 @@ def main():
     for name in STATIC_GLASS_TO_REMOVE:
         remove_object(name)
 
-    created = []
     for name, parent_name, dimensions, local_location in DOOR_GLASS:
-        created.append(
-            make_door_glass(
-                name,
-                parent_name,
-                dimensions,
-                local_location,
-                glass_material,
-            )
+        make_door_glass(
+            name,
+            parent_name,
+            dimensions,
+            local_location,
+            glass_material,
         )
 
     camera = bpy.data.objects.get("Camera")
@@ -174,8 +171,7 @@ def main():
             "actions": len(bpy.data.actions),
             "proof_images": {name: str(path) for name, path in proof_images.items()},
             "door_glass_hierarchy": {
-                name: parent_name
-                for name, parent_name, _, _ in DOOR_GLASS
+                name: parent_name for name, parent_name, _, _ in DOOR_GLASS
             },
             "removed_static_glass": list(STATIC_GLASS_TO_REMOVE),
             "stage_status": "CANDIDATE_PENDING_HIERARCHY_VALIDATION",
