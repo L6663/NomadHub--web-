@@ -6,6 +6,7 @@ on:
     paths:
       - "blender_rebuild/build_s2_body.py"
       - "blender_rebuild/validate_s2_body.py"
+      - "blender_rebuild/validate_s2_body_entry.py"
       - "blender_rebuild/build_real_blend.py"
       - "blender_rebuild/finalize_s1c_hierarchy.py"
       - "blender_rebuild/validate_s1c.py"
@@ -122,7 +123,7 @@ jobs:
           ./blender-4.2.0-linux-x64/blender \
             --background build/output/NomadHub_General3_V1.7_S2_R1.blend \
             --python-expr "import sys; sys.path.insert(0, r'${GITHUB_WORKSPACE}/blender_rebuild')" \
-            --python blender_rebuild/validate_s2_body.py \
+            --python blender_rebuild/validate_s2_body_entry.py \
             -- \
             --glb build/output/NomadHub_General3_V1.7_S2_R1.glb \
             --clearance build/output/S1C_Collision_Clearance.json \
