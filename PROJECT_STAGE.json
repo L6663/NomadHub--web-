@@ -2,23 +2,29 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T10:58:00+08:00",
+  "updated_at": "2026-08-02T11:08:00+08:00",
   "current_stage": {
     "id": "S2",
     "name": "Blender连续车身灰模",
-    "status": "IN_PROGRESS",
+    "status": "REWORK_REQUIRED",
     "progress_percent": 90,
     "started_at": "2026-08-01T23:40:00+08:00",
-    "review_status": "READY_FOR_FINAL_REVIEW",
-    "review_round": "R14_CANDIDATE",
-    "review_summary": "R14已废弃体素车身并建立单一连通BODY_SHELL；车窗为真实开口并配独立玻璃，车门和检修舱为独立内嵌面板；驾驶室侧窗、挡风包角、前脸和轮拱已重建。GLB全部83个图元均含POSITION和NORMAL，面数降至48891。当前保留最终视觉复审门禁，S3仍未解锁。",
+    "review_status": "FAILED_FINAL_UNIFIED_REVIEW",
+    "review_round": "R14_FINAL_UNIFIED_REVIEW",
+    "review_summary": "R14已解决轮位、真实窗洞、独立门板、轮心层级、NORMAL覆盖和面数预算问题，但最终统一审查发现BODY_SHELL约95.66%主体面法线朝内、主体宽度2.38598m超出2.350m冻结值约35.98mm、线框仍为密集三角化拓扑且前脸基础轮廓未达到冻结参考，因此S2不得关闭。",
+    "blocking_issues": [
+      "BODY_SHELL约95.66%主体面法线朝内，单面材质在Three.js中存在大面积剔除风险",
+      "BODY_SHELL宽度2.38598m，超过2.350m冻结值约35.98mm",
+      "主体拓扑为密集三角化表面，不适合作为S3受控精模母版",
+      "挡风玻璃、A柱、前围和保险杠基础轮廓仍需修正",
+      "5.150m轴距与2.590m后悬尚未正式写回S1冻结规范"
+    ],
     "working_outputs": [
       "NomadHub_RV_V1.7_S2_R14_Candidate.glb",
       "S2_R14_12_View_Solid_Review.png",
       "S2_R14_Closeup_Review.png",
       "S2_R14_Wireframe_Review.png",
-      "S2_R14_Independent_Review.md",
-      "S2_R14_Independent_Audit.json"
+      "docs/stages/S2/S2_R14_Final_Unified_Review.md"
     ],
     "metrics": {
       "file_size_mb": 1.071,
@@ -29,7 +35,11 @@
       "materials": 11,
       "body_components": 1,
       "normal_coverage": "83/83 primitives",
-      "scene_extents_with_mirrors_m": [8.986922, 2.639457, 3.05]
+      "body_outward_face_ratio": 0.043374,
+      "body_inward_face_ratio": 0.956626,
+      "body_width_m": 2.38598,
+      "target_body_width_m": 2.35,
+      "body_width_error_mm": 35.98
     }
   },
   "previous_stage": {
@@ -37,7 +47,7 @@
     "name": "工程参考规范统一",
     "status": "CHANGE_REQUESTED",
     "progress_percent": 98,
-    "change_scope": "后轴与后悬候选值已落入R14模型，待最终S2复审时一并冻结。",
+    "change_scope": "轴距、后悬和后轴位置修订待写回；主体宽度必须继续保持2.350m冻结值。",
     "previous_dimensions": {
       "wheelbase_m": 4.5,
       "rear_overhang_m": 3.23,
@@ -52,14 +62,14 @@
   "next_stage": {
     "id": "S3",
     "name": "结构精模与部件拆分",
-    "status": "BLOCKED_BY_S2_FINAL_REVIEW",
-    "entry_condition": "R14或后续候选通过最终视觉、节点、法线、开孔和面数复审，并冻结S1轴距变更。"
+    "status": "BLOCKED_BY_S2",
+    "entry_condition": "修正BODY_SHELL法线方向和主体宽度，完成可编辑控制环及驾驶舱基础轮廓，冻结S1轴距修订，并通过下一轮最终视觉与GLB统一审查。"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
-    {"id":"S1","name":"工程参考规范统一","status":"CHANGE_REQUESTED","progress_percent":98,"change_scope":"后轴位置与后悬候选值待冻结"},
-    {"id":"S2","name":"Blender连续车身灰模","status":"IN_PROGRESS","progress_percent":90,"review_status":"READY_FOR_FINAL_REVIEW","review_round":"R14_CANDIDATE"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2_FINAL_REVIEW","progress_percent":0},
+    {"id":"S1","name":"工程参考规范统一","status":"CHANGE_REQUESTED","progress_percent":98,"change_scope":"轴距/后悬待冻结，主体宽度保持2.350m"},
+    {"id":"S2","name":"Blender连续车身灰模","status":"REWORK_REQUIRED","progress_percent":90,"review_status":"FAILED_FINAL_UNIFIED_REVIEW","review_round":"R14_FINAL_UNIFIED_REVIEW"},
+    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2","progress_percent":0},
     {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
