@@ -6,6 +6,7 @@ on:
     paths:
       - "blender_rebuild/build_s2_continuous_body.py"
       - "blender_rebuild/validate_s2_continuous_body.py"
+      - "blender_rebuild/validate_s2_continuous_body_blender42.py"
       - ".github/workflows/build-s2-continuous-body.yml"
   workflow_dispatch:
 
@@ -98,7 +99,7 @@ jobs:
 
           ./blender-4.2.0-linux-x64/blender \
             --background build/output/NomadHub_General3_V1.7_S2_R1.blend \
-            --python blender_rebuild/validate_s2_continuous_body.py \
+            --python blender_rebuild/validate_s2_continuous_body_blender42.py \
             -- \
             --glb build/output/NomadHub_General3_V1.7_S2_R1.glb \
             --manifest build/output/S2_R1_BUILD_MANIFEST.json \
