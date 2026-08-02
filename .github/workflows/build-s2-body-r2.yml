@@ -6,6 +6,7 @@ on:
     paths:
       - "blender_rebuild/build_s2_body_r2.py"
       - "blender_rebuild/build_s2_body_r2_entry.py"
+      - "blender_rebuild/build_s2_body_r2_clearance.py"
       - "blender_rebuild/validate_s2_body_r2.py"
       - "blender_rebuild/validate_s2_body_r2_entry.py"
       - "blender_rebuild/build_s2_body.py"
@@ -80,7 +81,7 @@ jobs:
           cp build/source/S1C_SOURCE_MANIFEST.json build/output/S2_R2_BUILD_MANIFEST.json
           cp build/source/S1C_Collision_Clearance.json build/output/S1C_Collision_Clearance.json
 
-      - name: Build S2 R2 true-opening source topology
+      - name: Build S2 R2 true openings and wheel-well clearance topology
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -88,7 +89,7 @@ jobs:
           set -euo pipefail
           ./blender-4.2.0-linux-x64/blender \
             --background build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
-            --python blender_rebuild/build_s2_body_r2_entry.py \
+            --python blender_rebuild/build_s2_body_r2_clearance.py \
             -- \
             --output build/output/NomadHub_General3_V1.7_S2_R2.blend \
             --roundtrip build/output/NomadHub_General3_V1.7_S2_R2.glb \
@@ -106,20 +107,22 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          test -s build/output/NomadHub_General3_V1.7_S2_R2.blend
-          test -s build/output/NomadHub_General3_V1.7_S2_R2.glb
-          test -s build/output/S2_R2_Preview.png
-          test -s build/output/S2_R2_Left_Orthographic.png
-          test -s build/output/S2_R2_Right_Orthographic.png
-          test -s build/output/S2_R2_Top_Orthographic.png
-          test -s build/output/S2_R2_Left_Wireframe.png
-          test -s build/output/S2_R2_Right_Wireframe.png
-          test -s build/output/S2_R2_BUILD_MANIFEST.json
-          test -s build/output/S1C_Collision_Clearance.json
+          for file in \
+            NomadHub_General3_V1.7_S2_R2.blend \
+            NomadHub_General3_V1.7_S2_R2.glb \
+            S2_R2_Preview.png \
+            S2_R2_Left_Orthographic.png \
+            S2_R2_Right_Orthographic.png \
+            S2_R2_Top_Orthographic.png \
+            S2_R2_Left_Wireframe.png \
+            S2_R2_Right_Wireframe.png \
+            S2_R2_BUILD_MANIFEST.json \
+            S1C_Collision_Clearance.json; do
+            test -s "build/output/${file}"
+          done
 
           if compgen -G "build/output/*.blend1" > /dev/null; then
             echo "Unexpected Blender backup file in S2 R2 delivery"
-            ls -l build/output/*.blend1
             exit 1
           fi
 
@@ -157,9 +160,12 @@ jobs:
           assert manifest["all_quad_caps"] is True
           assert manifest["source_true_openings"] is True
           assert manifest["true_opening_count"] == 17
+          assert manifest["wheel_well_source_profile"]["method"] == "source_topology_local_raised_floor"
           assert report["status"] == "PASS"
           assert report["s2_r2_ready_for_visual_review"] is True
           assert report["s2_accepted"] is False
+          assert report["blend_body"]["wheel_body_clearance"]["result"] == "PASS"
+          assert report["glb_body"]["wheel_body_clearance"]["result"] == "PASS"
           assert report["blend_body"]["true_opening_topology"]["result"] == "PASS"
           assert report["blend_body"]["true_opening_rays"]["result"] == "PASS"
           assert report["glb_body"]["true_opening_rays"]["result"] == "PASS"
