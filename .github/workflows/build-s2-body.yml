@@ -100,7 +100,6 @@ jobs:
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
-          PYTHONPATH: "blender_rebuild"
         run: |
           set -euo pipefail
           test -s build/output/NomadHub_General3_V1.7_S2_R1.blend
@@ -122,6 +121,7 @@ jobs:
 
           ./blender-4.2.0-linux-x64/blender \
             --background build/output/NomadHub_General3_V1.7_S2_R1.blend \
+            --python-expr "import sys; sys.path.insert(0, r'${GITHUB_WORKSPACE}/blender_rebuild')" \
             --python blender_rebuild/validate_s2_body.py \
             -- \
             --glb build/output/NomadHub_General3_V1.7_S2_R1.glb \
