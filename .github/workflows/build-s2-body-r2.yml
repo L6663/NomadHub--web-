@@ -7,6 +7,7 @@ on:
       - "blender_rebuild/build_s2_body_r2.py"
       - "blender_rebuild/build_s2_body_r2_entry.py"
       - "blender_rebuild/validate_s2_body_r2.py"
+      - "blender_rebuild/validate_s2_body_r2_entry.py"
       - "blender_rebuild/build_s2_body.py"
       - "blender_rebuild/validate_s2_body.py"
       - "blender_rebuild/build_real_blend.py"
@@ -21,7 +22,7 @@ permissions:
 jobs:
   build-s2-r2:
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 65
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
@@ -79,7 +80,7 @@ jobs:
           cp build/source/S1C_SOURCE_MANIFEST.json build/output/S2_R2_BUILD_MANIFEST.json
           cp build/source/S1C_Collision_Clearance.json build/output/S1C_Collision_Clearance.json
 
-      - name: Build S2 R2 source topology
+      - name: Build S2 R2 true-opening source topology
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -99,7 +100,7 @@ jobs:
             --wire-left build/output/S2_R2_Left_Wireframe.png \
             --wire-right build/output/S2_R2_Right_Wireframe.png
 
-      - name: Validate R2 topology and S1C compatibility
+      - name: Validate R2 openings topology and S1C compatibility
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -125,7 +126,7 @@ jobs:
           ./blender-4.2.0-linux-x64/blender \
             --background build/output/NomadHub_General3_V1.7_S2_R2.blend \
             --python-expr "import sys; sys.path.insert(0, r'${GITHUB_WORKSPACE}/blender_rebuild')" \
-            --python blender_rebuild/validate_s2_body_r2.py \
+            --python blender_rebuild/validate_s2_body_r2_entry.py \
             -- \
             --glb build/output/NomadHub_General3_V1.7_S2_R2.glb \
             --clearance build/output/S1C_Collision_Clearance.json \
@@ -147,23 +148,28 @@ jobs:
           assert manifest["body_object"] == "BODY_S2_CONTROL_CAGE"
           assert manifest["actions"] >= 13
           assert manifest["topology"]["ring_count"] >= 60
-          assert manifest["topology"]["ring_size"] == 48
+          assert manifest["topology"]["ring_size"] >= 80
           assert manifest["topology"]["quad_ratio"] == 1.0
           assert manifest["topology"]["triangles"] == 0
           assert manifest["topology"]["ngons"] == 0
           assert manifest["modifier_types"] == ["SUBSURF", "BEVEL"]
           assert manifest["source_wheel_arch_topology"] is True
           assert manifest["all_quad_caps"] is True
+          assert manifest["source_true_openings"] is True
+          assert manifest["true_opening_count"] == 17
           assert report["status"] == "PASS"
           assert report["s2_r2_ready_for_visual_review"] is True
           assert report["s2_accepted"] is False
+          assert report["blend_body"]["true_opening_topology"]["result"] == "PASS"
+          assert report["blend_body"]["true_opening_rays"]["result"] == "PASS"
+          assert report["glb_body"]["true_opening_rays"]["result"] == "PASS"
 
-          manifest["stage_status"] = "R2_TECHNICALLY_VALIDATED_VISUAL_REVIEW_REQUIRED"
+          manifest["stage_status"] = "R2_TRUE_OPENINGS_TECHNICALLY_VALIDATED_VISUAL_REVIEW_REQUIRED"
           manifest["s2_r2_ready_for_visual_review"] = True
           manifest["verification_report"] = report_path.name
           manifest["verification_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
           manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("S2_R2_TECHNICAL_CANDIDATE_VALIDATED")
+          print("S2_R2_TRUE_OPENING_CANDIDATE_VALIDATED")
           PY
 
           (
