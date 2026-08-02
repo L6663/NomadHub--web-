@@ -172,6 +172,7 @@ def make_arch_lip(name, center_x, side_sign, material, parent):
     obj["wheel_arch_center_x_m"] = center_x
     obj["wheel_arch_opening_width_m"] = ARCH_RX_M * 2
     obj["wheel_arch_opening_height_m"] = ARCH_RZ_M * 2
+    bpy.ops.object.select_all(action="DESELECT")
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
     bpy.ops.object.convert(target="MESH")
@@ -215,6 +216,19 @@ def animate_rotation(root, axis, angle):
 
 def look_at(obj, target):
     obj.rotation_euler = (Vector(target) - obj.location).to_track_quat("-Z", "Y").to_euler()
+
+
+def render_proof(scene, camera, path, location, target, frame, ortho_scale=None):
+    scene.frame_set(frame)
+    camera.location = location
+    camera.data.type = "ORTHO" if ortho_scale is not None else "PERSP"
+    if ortho_scale is not None:
+        camera.data.ortho_scale = ortho_scale
+    else:
+        camera.data.lens = 55
+    look_at(camera, target)
+    scene.render.filepath = str(path)
+    bpy.ops.render.render(write_still=True)
 
 
 def interval_distance(a_min, a_max, b_min, b_max):
@@ -321,7 +335,7 @@ def main():
     wheels = make_empty("WHEELS", parent=root)
     roof = make_empty("ROOF", parent=root)
     lights = make_empty("LIGHTS", parent=root)
-    mirrors = make_empty("MIRRORS", parent=root)
+    make_empty("MIRRORS", parent=root)
 
     make_box("BODY_MAIN", (7.05, 2.30, 2.35), (0.80, 0, 1.48), silver, body, bevel=0.06)
     profile = [
@@ -335,8 +349,22 @@ def main():
     make_profile_prism("BODY_CAB", profile, 2.26, silver, body)
     make_box("FRONT_BUMPER", (0.16, 1.78, 0.23), (-4.46, 0, 0.44), dark, body, bevel=0.06)
     make_box("REAR_BUMPER", (0.16, 1.82, 0.23), (4.43, 0, 0.44), dark, body, bevel=0.06)
-    make_box("SIDE_SKIRT_L", (7.1, 0.10, 0.18), (0.45, -1.15, 0.43), dark, body, bevel=0.03)
-    make_box("SIDE_SKIRT_R", (7.1, 0.10, 0.18), (0.45, 1.15, 0.43), dark, body, bevel=0.03)
+
+    skirt_segments = (
+        ("FRONT", -4.25, -3.81),
+        ("MID", -2.68, 1.34),
+        ("REAR", 2.47, 4.00),
+    )
+    for side_sign, suffix in ((-1, "L"), (1, "R")):
+        for segment_name, x_min, x_max in skirt_segments:
+            make_box(
+                f"SIDE_SKIRT_{suffix}_{segment_name}",
+                (x_max - x_min, 0.10, 0.12),
+                ((x_min + x_max) / 2, side_sign * 1.15, 0.285),
+                dark,
+                body,
+                bevel=0.025,
+            )
 
     for arch_name, (center_x, side_sign) in ARCH_SPECS.items():
         make_arch_lip(arch_name, center_x, side_sign, dark, body)
@@ -368,8 +396,10 @@ def main():
         ("DOOR_PASSENGER_R_ROOT", (-4.02, 1.18, 0.45), (0.82, 0.05, 1.72), (0.41, 0, 0.86), 68),
         ("DOOR_LIVING_R_ROOT", (-0.82, 1.18, 0.34), (0.78, 0.05, 1.96), (0.39, 0, 0.98), 82),
     ]
+    door_roots = {}
     for name, location, dimensions, local_location, degrees in door_specs:
         door_root = make_empty(name, location, doors)
+        door_roots[name] = door_root
         make_child_box(name.replace("_ROOT", ""), dimensions, local_location, silver, door_root)
         animate_rotation(door_root, 2, math.radians(degrees))
 
@@ -399,8 +429,12 @@ def main():
         make_box("HEADLIGHT_" + ("L" if y < 0 else "R"), (0.05, 0.36, 0.20), (-4.50, y, 1.30), cyan, lights, bevel=0.06)
     for y in (-0.78, 0.78):
         make_box("TAILLIGHT_" + ("L" if y < 0 else "R"), (0.05, 0.22, 0.60), (4.50, y, 1.18), red, lights, bevel=0.05)
-    for side, suffix in ((-1, "L"), (1, "R")):
-        mirror_root = make_empty(f"MIRROR_{suffix}_ROOT", (-3.82, side * 1.18, 1.82), mirrors)
+
+    for side, suffix, door_name in (
+        (-1, "L", "DOOR_DRIVER_L_ROOT"),
+        (1, "R", "DOOR_PASSENGER_R_ROOT"),
+    ):
+        mirror_root = make_empty(f"MIRROR_{suffix}_ROOT", (0.20, 0, 1.37), door_roots[door_name])
         make_child_box(f"MIRROR_{suffix}_HOUSING", (0.25, 0.23, 0.30), (-0.10, side * 0.19, 0.02), silver, mirror_root, 0.04)
         make_child_box(f"MIRROR_{suffix}_GLASS", (0.12, 0.025, 0.20), (-0.13, side * 0.31, 0.02), glass, mirror_root, 0.02)
     make_box("ACCENT_L", (4.8, 0.018, 0.07), (0.35, -1.185, 1.15), cyan, body, rotation=(0, math.radians(-2), 0), bevel=0.01)
@@ -445,10 +479,27 @@ def main():
     if clearance["result"] != "PASS":
         raise RuntimeError(f"S1C static clearance gate failed: {json.dumps(clearance, ensure_ascii=False)}")
 
-    Path(arguments.output).parent.mkdir(parents=True, exist_ok=True)
+    output_dir = Path(arguments.output).parent
+    output_dir.mkdir(parents=True, exist_ok=True)
     Path(arguments.clearance).write_text(json.dumps(clearance, ensure_ascii=False, indent=2), encoding="utf-8")
     bpy.ops.wm.save_as_mainfile(filepath=arguments.output, compress=True)
-    bpy.ops.render.render(write_still=True)
+
+    proof_images = {
+        "perspective_closed": Path(arguments.preview),
+        "left_orthographic": output_dir / "S1C_Left_Orthographic.png",
+        "right_orthographic": output_dir / "S1C_Right_Orthographic.png",
+        "top_orthographic": output_dir / "S1C_Top_Orthographic.png",
+        "left_open": output_dir / "S1C_Left_Open.png",
+        "right_open": output_dir / "S1C_Right_Open.png",
+    }
+    render_proof(scene, camera, proof_images["perspective_closed"], (-11, -10, 7.2), (0, 0, 1.35), 1)
+    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 5.5)
+    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 5.5)
+    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 5.5)
+    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 5.5)
+    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 5.5)
+    scene.frame_set(1)
+
     bpy.ops.export_scene.gltf(
         filepath=arguments.roundtrip,
         export_format="GLB",
@@ -469,6 +520,7 @@ def main():
         "roundtrip_glb": arguments.roundtrip,
         "roundtrip_sha256": hashlib.sha256(Path(arguments.roundtrip).read_bytes()).hexdigest(),
         "preview": arguments.preview,
+        "proof_images": {name: str(path) for name, path in proof_images.items()},
         "clearance_report": arguments.clearance,
         "objects": len(bpy.data.objects),
         "meshes": len(bpy.data.meshes),
