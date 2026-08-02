@@ -2,82 +2,83 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T13:22:00+08:00",
+  "updated_at": "2026-08-02T16:10:00+08:00",
   "current_stage": {
-    "id": "AUDIT_HOLD",
-    "name": "S0-S3真实性与可复现性整改",
-    "status": "IN_PROGRESS",
-    "reason": "独立审计确认本地文件与GLB真实存在，但S1闭环、Blender建模、视觉门禁、碰撞验证和GitHub完整资产托管均未达到原PASSED表述。暂停S4，先纠正S1-S3。",
-    "audit_path": "docs/audits/S0-S3_真实性与可复现性审计.md"
+    "id": "BLENDER_NATIVE_REBUILD",
+    "name": "真实Blender母版重建与上游整改",
+    "status": "BASELINE_VERIFIED",
+    "summary": "已使用官方Blender 4.2.0在GitHub Actions中原生创建、保存、重新打开并导出可编辑.blend工程。该成果解决了此前没有可核验Blender源工程的问题，但仍是Blender原生基线，不等于产品级拓扑或S2/S3重新验收通过。",
+    "verification_path": "docs/audits/REAL_BLEND_REBUILD_VERIFICATION.md"
   },
   "corrected_stage_status": {
     "S0": {
       "name": "视觉方向冻结",
       "status": "CONCEPT_ACCEPTED",
-      "note": "仅作为视觉概念，不是CAD或权威工程图。"
+      "note": "保留为视觉概念，不作为CAD工程正投影。"
     },
     "S1": {
       "name": "工程参考规范统一",
       "status": "REWORK_REQUIRED",
-      "note": "轴距修订后未重新闭环门舱、轮拱、窗口和皮肤锚点；存在明确检修舱/轮拱冲突。"
+      "note": "需按5.150m轴距重新闭环轮拱、检修舱、车窗和皮肤锚点。"
     },
     "S2": {
       "name": "连续车身灰模",
-      "status": "PROTOTYPE_ONLY_REWORK_REQUIRED",
-      "note": "GLB真实，但由Python+trimesh生成；没有.blend文件，也没有独立Blender/Three.js视觉验证。"
+      "status": "BLENDER_BASELINE_CREATED_REVIEW_REQUIRED",
+      "note": "真实.blend母版已经生成并可重新打开；当前几何仍是Blender原生基线，尚未完成产品级曲面和手工重拓扑。"
     },
     "S3": {
       "name": "结构精模与部件拆分",
-      "status": "REWORK_REQUIRED",
-      "note": "GLB与层级真实，但产品级精模、真实动画、三角面碰撞和Blender母版均未成立。"
+      "status": "NOT_REACCEPTED",
+      "note": "已有门、舱、轮组和动画层级，但必须在真实Blender母版上继续精修并重新验收。"
     },
     "S4": {
       "name": "UV展开与Nomad Silver皮肤",
       "status": "PAUSED_BY_AUDIT",
-      "note": "上游母版和工程规范未闭环，禁止继续UV。"
+      "note": "在S1重新闭环且S2/S3重新通过前，不开始正式UV。"
     }
   },
-  "verified_real_assets": {
-    "local_sha256_manifests_match": true,
-    "s2_glb_container_valid": true,
-    "s3_glb_container_valid": true,
-    "s2_metrics": {
-      "graph_nodes": 92,
-      "geometry_nodes": 77,
-      "vertices": 13250,
-      "triangles": 25554,
-      "materials": 11,
-      "animations": 0,
-      "textures": 0
-    },
-    "s3_metrics": {
-      "graph_nodes": 118,
-      "geometry_nodes": 78,
-      "vertices": 20969,
-      "triangles": 40534,
-      "materials": 14,
-      "animations": 0,
-      "textures": 0,
-      "uv_primitives": "15/78"
-    }
+  "verified_blender_artifact": {
+    "workflow": "Build Genuine Blender Project",
+    "workflow_run_id": 30739094276,
+    "workflow_run_number": 7,
+    "workflow_conclusion": "success",
+    "artifact_id": 8830670607,
+    "artifact_name": "NomadHub-General3-V1.7-REAL-BLEND",
+    "artifact_digest": "sha256:6f39daceae542aa8f83ddfff9eddc852da0c1ad72712530a7740fd33b37acecb",
+    "artifact_expires_at": "2026-08-16T08:07:40Z",
+    "generator_commit": "9c35d47594659b919201b0640b1bc4e50f31fcaa",
+    "merged_commit": "9759854d533dd14832b13c13fb57ed99523e7c9a",
+    "blender_version": "4.2.0",
+    "blend_file": "NomadHub_General3_V1.7_REAL.blend",
+    "blend_bytes": 135245,
+    "blend_sha256": "3fbc91023fbd1a3ca03f513a086fdfb405a4e00a1a2892223fab0a2e4ee9f46d",
+    "roundtrip_glb": "NomadHub_General3_V1.7_BlenderRoundtrip.glb",
+    "roundtrip_glb_sha256": "aefc4241b96470f17db4976171add1723af88c6adf87a7dad7338d5100caf1e9",
+    "objects": 78,
+    "meshes": 50,
+    "materials": 7,
+    "blender_actions": 13,
+    "roundtrip_glb_animations": 13,
+    "units": "meters",
+    "verified_by": [
+      "Blender 4.2原生保存",
+      "Blender重新打开.blend并检查RV_ROOT、动作和单位",
+      "SHA-256与构建清单匹配",
+      "Blender回导GLB包含13个动画"
+    ],
+    "scope_limit": "该工程是真实可编辑Blender基线，但尚未达到手工重拓扑、A级曲面或最终产品级房车资产标准。"
   },
-  "invalidated_claims": [
-    "S2/S3为Blender建模阶段——实际无任何.blend文件，生成器为Python+trimesh。",
-    "视觉门禁为独立验证——实际审查图来自同一套自定义CPU rasterizer，部分布尔门禁为人工写入。",
-    "门舱无穿模——实际仅使用最近车身顶点距离近似，不是真实三角面碰撞。",
-    "GitHub已托管正式模型——仓库中找不到状态文件列出的S2/S3 GLB交付物。"
-  ],
   "next_actions": [
-    "更新统一正投影和轴距标注。",
-    "重新计算S1门窗、检修舱、轮拱和皮肤锚点。",
-    "在真实Blender环境建立并提交.blend母版。",
-    "重新执行S2/S3视觉、拓扑、碰撞和Three.js运行时验证。",
-    "S3重新通过后再恢复S4。"
+    "在真实Blender工程中重做S1冲突闭环。",
+    "重拓扑车身、驾驶舱、A柱、轮拱和门舱区域。",
+    "用Blender正投影和Eevee视图重新执行S2视觉验收。",
+    "在同一.blend中继续S3部件精修与动画碰撞验证。",
+    "S2/S3重新通过后恢复S4。"
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
     "bulk_upload": "PAUSED",
     "stage_commits": "ENABLED",
-    "audit_rule": "阶段通过必须区分真实文件存在、自动技术检查、独立视觉审查和外部运行时验证；不得用自写报告替代独立证据。"
+    "audit_rule": "阶段通过必须同时具备真实源工程、可复现构建、技术验证、视觉验收和适用范围声明。"
   }
 }
