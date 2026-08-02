@@ -142,11 +142,11 @@ def main():
     bpy.ops.wm.save_as_mainfile(filepath=args.blend, compress=True)
 
     render_proof(scene, camera, proof_images["perspective_closed"], (-11, -10, 7.2), (0, 0, 1.35), 1)
-    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 6.3)
-    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 6.3)
-    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 6.3)
-    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 6.3)
-    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 6.3)
+    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 10.5)
+    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 10.5)
+    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 10.5)
+    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 10.5)
+    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 10.5)
     scene.frame_set(1)
 
     bpy.ops.export_scene.gltf(
@@ -157,6 +157,7 @@ def main():
         export_extras=True,
     )
     bpy.ops.wm.save_as_mainfile(filepath=args.blend, compress=True)
+    Path(args.blend + "1").unlink(missing_ok=True)
 
     manifest_path = Path(args.manifest)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
