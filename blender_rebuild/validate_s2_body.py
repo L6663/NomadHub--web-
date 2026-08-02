@@ -1,4 +1,5 @@
 import argparse
+import importlib.util
 import json
 import sys
 from collections import defaultdict, deque
@@ -9,7 +10,14 @@ import bpy
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-import validate_s1c as s1c
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+S1C_VALIDATOR_PATH = SCRIPT_DIR / "validate_s1c.py"
+S1C_SPEC = importlib.util.spec_from_file_location("nomadhub_validate_s1c", S1C_VALIDATOR_PATH)
+if S1C_SPEC is None or S1C_SPEC.loader is None:
+    raise RuntimeError(f"unable to load S1C validator: {S1C_VALIDATOR_PATH}")
+s1c = importlib.util.module_from_spec(S1C_SPEC)
+S1C_SPEC.loader.exec_module(s1c)
 
 
 BODY_NAME = "BODY_S2_CONTROL_CAGE"
@@ -373,7 +381,7 @@ def main():
         failures.append("manifest body object mismatch")
 
     report = {
-        "schema": "nomadhub-s2-r1-verification-v3",
+        "schema": "nomadhub-s2-r1-verification-v4",
         "stage": "S2",
         "iteration": "R1",
         "status": "PASS" if not failures else "FAIL",
