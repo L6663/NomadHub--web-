@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import sys
+import traceback
 from pathlib import Path
 
 import bmesh
@@ -372,6 +373,39 @@ def active_actions_merged_mode():
     raise RuntimeError("Active Actions Merged mode unavailable")
 
 
+def export_gltf_compatible(filepath, animation_mode):
+    properties = bpy.ops.export_scene.gltf.get_rna_type().properties
+    kwargs = {
+        "filepath": filepath,
+        "export_format": "GLB",
+        "export_animations": True,
+        "export_animation_mode": animation_mode,
+        "export_apply": True,
+        "export_extras": True,
+    }
+    if properties.get("use_visible") is not None:
+        kwargs["use_visible"] = True
+    elif properties.get("export_visible") is not None:
+        kwargs["export_visible"] = True
+    elif properties.get("use_selection") is not None:
+        bpy.ops.object.select_all(action="DESELECT")
+        for obj in bpy.context.scene.objects:
+            excluded = (
+                obj.hide_get()
+                or obj.hide_viewport
+                or obj.hide_render
+                or bool(obj.get("s2_proof_only", False))
+            )
+            if not excluded:
+                obj.select_set(True)
+        kwargs["use_selection"] = True
+    else:
+        raise RuntimeError(
+            "Blender glTF exporter exposes no compatible visible/selection filter"
+        )
+    bpy.ops.export_scene.gltf(**kwargs)
+
+
 def polygon_statistics(mesh):
     counts = {"triangles": 0, "quads": 0, "ngons": 0}
     for polygon in mesh.polygons:
@@ -432,21 +466,15 @@ def main():
     render(scene, camera, args.wireframe, (-11, -10, 7.2), (0, 0, 1.35))
     body.hide_render = False
     wire.hide_render = True
+    wire.hide_viewport = True
+    wire.hide_set(True)
     scene.frame_set(1)
 
     bpy.ops.wm.save_as_mainfile(filepath=args.output, compress=True)
     Path(args.output + "1").unlink(missing_ok=True)
 
     animation_mode = active_actions_merged_mode()
-    bpy.ops.export_scene.gltf(
-        filepath=args.glb,
-        export_format="GLB",
-        export_animations=True,
-        export_animation_mode=animation_mode,
-        export_apply=True,
-        export_extras=True,
-        export_visible=True,
-    )
+    export_gltf_compatible(args.glb, animation_mode)
     bpy.ops.wm.save_as_mainfile(filepath=args.output, compress=True)
     Path(args.output + "1").unlink(missing_ok=True)
 
@@ -506,4 +534,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
