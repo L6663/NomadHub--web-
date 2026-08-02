@@ -15,7 +15,6 @@ usable frame shapes. Wheel arches remain part of the source topology.
 import importlib.util
 import json
 import math
-import sys
 from pathlib import Path
 
 import bmesh
@@ -31,10 +30,12 @@ if SPEC is None or SPEC.loader is None:
 builder = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(builder)
 
-# Frozen tire outer radius is approximately 0.415 m. These dimensions retain
-# more than 80 mm visual/source clearance after subdivision without cutters.
+# Frozen tire outer radius is approximately 0.415 m. The X/Z source arch keeps
+# a 0.620 m radius, while the lower cross-section is pulled farther inward so
+# the source cage rises as an inner wheel-well wall before returning to the
+# exterior body skin above the tire.
 builder.ARCH_RADIUS_M = 0.620
-builder.WHEEL_WELL_HALF_WIDTH_M = 0.620
+builder.WHEEL_WELL_HALF_WIDTH_M = 0.360
 
 # The first 16 entries reuse the frozen side component bounds. The windshield
 # is cut from the sloped upper-front longitudinal surface.
@@ -147,8 +148,95 @@ def corrected_boundary_index(i, j):
     return None
 
 
+def arch_strength(x):
+    strength = 0.0
+    for center in (builder.FRONT_AXLE_X_M, builder.REAR_AXLE_X_M):
+        dx = x - center
+        if abs(dx) <= builder.ARCH_RADIUS_M:
+            radial_height = math.sqrt(
+                max(0.0, builder.ARCH_RADIUS_M ** 2 - dx ** 2)
+            )
+            strength = max(strength, radial_height / builder.ARCH_RADIUS_M)
+    return strength
+
+
+def corrected_grid_boundary_points(x, width, z_low, z_top):
+    half = width / 2
+    lower_corner = min(0.120, half * 0.12)
+    roof_corner = min(0.180, half * 0.18)
+    levels = list(builder.remapped_z_levels(z_low, z_top))
+    arch_height = builder.wheel_arch_height(x)
+    strength = arch_strength(x)
+
+    if arch_height is not None:
+        levels[1] = max(levels[1], arch_height)
+        levels[2] = max(levels[2], arch_height + 0.050)
+        levels[3] = max(levels[3], arch_height + 0.110)
+        for index in range(1, len(levels)):
+            levels[index] = max(levels[index], levels[index - 1] + 0.015)
+        levels[-1] = z_top
+
+    regular_bottom = half - lower_corner
+    bottom_half_width = regular_bottom + (
+        builder.WHEEL_WELL_HALF_WIDTH_M - regular_bottom
+    ) * strength
+    side_inner = half + (builder.WHEEL_WELL_HALF_WIDTH_M - half) * strength
+
+    points = []
+    # Bottom edge, left to right. At the axle center it terminates well inside
+    # the inner tire sidewall; at the arch support boundaries it returns to the
+    # normal lower body corner without a discontinuity.
+    for i in range(builder.GRID_N):
+        factor = i / (builder.GRID_N - 1)
+        points.append(
+            (
+                x,
+                -bottom_half_width + 2.0 * bottom_half_width * factor,
+                z_low,
+            )
+        )
+
+    # Right side: rise along the inner wheel-well wall, then blend back to the
+    # exterior skin above the tire. This removes the old diagonal chord that
+    # lightly intersected the tire after Catmull-Clark subdivision.
+    for j in range(1, builder.GRID_N):
+        z = levels[j]
+        if arch_height is not None and j <= 3:
+            blend = (0.0, 0.35, 0.78)[j - 1]
+            y = side_inner + (half - side_inner) * blend
+        else:
+            y = half
+        if j == builder.GRID_N - 1:
+            y = half - roof_corner
+        points.append((x, y, z))
+
+    # Roof, right to left, excluding the already-emitted right corner.
+    roof_right = half - roof_corner
+    roof_left = -half + roof_corner
+    for i in range(builder.GRID_N - 2, -1, -1):
+        factor = i / (builder.GRID_N - 1)
+        points.append((x, roof_left + (roof_right - roof_left) * factor, z_top))
+
+    # Left side mirrors the right wheel-well wall.
+    for j in range(builder.GRID_N - 2, 0, -1):
+        z = levels[j]
+        if arch_height is not None and j <= 3:
+            blend = (0.0, 0.35, 0.78)[j - 1]
+            y = -(side_inner + (half - side_inner) * blend)
+        else:
+            y = -half
+        points.append((x, y, z))
+
+    if len(points) != builder.RING_SIZE:
+        raise RuntimeError(
+            f"corrected R2 ring size {len(points)} != {builder.RING_SIZE}"
+        )
+    return points
+
+
 builder.RING_XS = corrected_expanded_ring_xs()
 builder.boundary_index = corrected_boundary_index
+builder.grid_boundary_points = corrected_grid_boundary_points
 
 
 def side_opening_at(side, x_mid, z_mid):
@@ -292,6 +380,8 @@ def build_true_opening_cage(parent, material):
     body["s1c_frozen_wheelbase_m"] = builder.WHEELBASE_M
     body["s1c_frozen_front_axle_x_m"] = builder.FRONT_AXLE_X_M
     body["s1c_frozen_rear_axle_x_m"] = builder.REAR_AXLE_X_M
+    body["s2_wheel_well_half_width_m"] = builder.WHEEL_WELL_HALF_WIDTH_M
+    body["s2_wheel_arch_radius_m"] = builder.ARCH_RADIUS_M
 
     subdivision = body.modifiers.new("S2_Subdivision", "SUBSURF")
     subdivision.subdivision_type = "CATMULL_CLARK"
@@ -315,6 +405,11 @@ def patch_manifest(path):
     payload["true_openings"] = list(TRUE_OPENINGS)
     payload["true_opening_count"] = len(TRUE_OPENINGS)
     payload["source_true_openings"] = True
+    payload["wheel_arch_source_profile"] = {
+        "radius_m": builder.ARCH_RADIUS_M,
+        "inner_half_width_m": builder.WHEEL_WELL_HALF_WIDTH_M,
+        "transition": "circular_strength_inner_wall_then_outer_skin",
+    }
     payload["topology"]["ring_size"] = builder.RING_SIZE
     payload["topology"]["vertical_level_count"] = builder.GRID_N
     payload["topology"]["vertical_levels_m"] = list(builder.STANDARD_Z_LEVELS)
