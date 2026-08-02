@@ -493,11 +493,11 @@ def main():
         "right_open": output_dir / "S1C_Right_Open.png",
     }
     render_proof(scene, camera, proof_images["perspective_closed"], (-11, -10, 7.2), (0, 0, 1.35), 1)
-    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 5.5)
-    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 5.5)
-    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 5.5)
-    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 5.5)
-    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 5.5)
+    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 10.5)
+    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 10.5)
+    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 10.5)
+    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 10.5)
+    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 10.5)
     scene.frame_set(1)
 
     bpy.ops.export_scene.gltf(
@@ -508,6 +508,7 @@ def main():
         export_extras=True,
     )
     bpy.ops.wm.save_as_mainfile(filepath=arguments.output, compress=True)
+    Path(arguments.output + "1").unlink(missing_ok=True)
 
     payload = {
         "artifact_type": "genuine_blender_native_project",
