@@ -55,7 +55,9 @@ def visual_report_f2(label):
     if trim is None or not bool(trim.get("s2_r4_f2_surface_aligned")):
         failures.append(f"{label}: aligned windshield trim marker missing")
 
-    report["r4_f2_surface_count"] = sum(bpy.data.objects.get(name) is not None for name in F2_SURFACES)
+    report["r4_f2_surface_count"] = sum(
+        bpy.data.objects.get(name) is not None for name in F2_SURFACES
+    )
     report["failures"] = failures
     report["result"] = "PASS" if not failures else "FAIL"
     return report
@@ -66,9 +68,6 @@ base.r4_visual_contract_report = visual_report_f2
 
 def collect_s1c_f2(label):
     # validate_s2_body_r4 -> validate_s2_body_r2 -> validate_s2_body -> validate_s1c
-    # The S1C module is therefore nested under validator.base.s1c, not directly
-    # on validator. Use the actual module path so this strict wrapper works in
-    # both Blender-native and imported-GLB validation passes.
     s1c = base.validator.base.s1c
     original_static = s1c.STATIC_COLLISION_OBJECTS
     try:
@@ -94,7 +93,9 @@ def collect_s1c_f2(label):
             *base.CAB_SURROUNDS,
             *base.CAB_TRIMS,
         )
-        return base.validator.collect_s1c_compatibility(label)
+        # Call the S1C collector directly. The R2 wrapper would overwrite the
+        # R4-F2 static-object set with its older R2 list before collecting.
+        return s1c.collect_scene_metrics(label)
     finally:
         s1c.STATIC_COLLISION_OBJECTS = original_static
 
