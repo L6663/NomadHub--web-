@@ -65,7 +65,11 @@ base.r4_visual_contract_report = visual_report_f2
 
 
 def collect_s1c_f2(label):
-    s1c = base.validator.s1c
+    # validate_s2_body_r4 -> validate_s2_body_r2 -> validate_s2_body -> validate_s1c
+    # The S1C module is therefore nested under validator.base.s1c, not directly
+    # on validator. Use the actual module path so this strict wrapper works in
+    # both Blender-native and imported-GLB validation passes.
+    s1c = base.validator.base.s1c
     original_static = s1c.STATIC_COLLISION_OBJECTS
     try:
         s1c.STATIC_COLLISION_OBJECTS = (
