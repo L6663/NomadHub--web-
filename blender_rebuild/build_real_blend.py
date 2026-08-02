@@ -1,275 +1,149 @@
-import argparse
-import hashlib
-import json
-import math
-import sys
+import argparse, hashlib, json, math, sys
 from pathlib import Path
-
 import bpy
+from mathutils import Vector
 
 
-def parse_args():
-    argv = sys.argv
-    argv = argv[argv.index("--") + 1:] if "--" in argv else []
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--input", required=True)
-    parser.add_argument("--output", required=True)
-    parser.add_argument("--roundtrip", required=True)
-    parser.add_argument("--manifest", required=True)
-    return parser.parse_args(argv)
+def args():
+    a=sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else []
+    p=argparse.ArgumentParser()
+    p.add_argument('--output',required=True); p.add_argument('--roundtrip',required=True)
+    p.add_argument('--manifest',required=True); p.add_argument('--preview',required=True)
+    return p.parse_args(a)
 
 
-def clear_scene():
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete(use_global=False)
-    for datablocks in (
-        bpy.data.meshes,
-        bpy.data.curves,
-        bpy.data.materials,
-        bpy.data.cameras,
-        bpy.data.lights,
-    ):
-        for block in list(datablocks):
-            if block.users == 0:
-                datablocks.remove(block)
+def clear():
+    bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
+    for blocks in (bpy.data.meshes,bpy.data.curves,bpy.data.materials,bpy.data.cameras,bpy.data.lights):
+        for b in list(blocks):
+            if b.users==0: blocks.remove(b)
 
 
-def find_object(name):
-    return bpy.data.objects.get(name)
+def mat(name,color,metal=0.0,rough=.5,trans=0.0):
+    m=bpy.data.materials.new(name); m.use_nodes=True
+    bs=m.node_tree.nodes.get('Principled BSDF')
+    bs.inputs['Base Color'].default_value=(*color,1)
+    bs.inputs['Metallic'].default_value=metal; bs.inputs['Roughness'].default_value=rough
+    if bs.inputs.get('Transmission Weight'): bs.inputs['Transmission Weight'].default_value=trans
+    if bs.inputs.get('Coat Weight'): bs.inputs['Coat Weight'].default_value=.35 if 'BODY' in name else 0
+    return m
 
 
-def set_principled_value(material, names, value):
-    if not material or not material.use_nodes:
-        return False
-    bsdf = material.node_tree.nodes.get("Principled BSDF")
-    if not bsdf:
-        return False
-    for name in names:
-        socket = bsdf.inputs.get(name)
-        if socket is not None:
-            socket.default_value = value
-            return True
-    return False
+def empty(name,loc=(0,0,0),parent=None):
+    o=bpy.data.objects.new(name,None); bpy.context.scene.collection.objects.link(o)
+    o.location=loc; o.parent=parent; return o
 
 
-def prepare_materials():
-    for material in bpy.data.materials:
-        material.use_nodes = True
-        name = material.name.upper()
-        if "GLASS" in name:
-            set_principled_value(material, ["Roughness"], 0.12)
-            set_principled_value(material, ["Transmission Weight", "Transmission"], 0.65)
-            set_principled_value(material, ["IOR"], 1.45)
-        elif "BODY" in name:
-            set_principled_value(material, ["Metallic"], 0.18)
-            set_principled_value(material, ["Roughness"], 0.28)
-            set_principled_value(material, ["Coat Weight", "Clearcoat"], 0.35)
-            set_principled_value(material, ["Coat Roughness", "Clearcoat Roughness"], 0.10)
-        elif "RUBBER" in name:
-            set_principled_value(material, ["Roughness"], 0.82)
-        elif "CHROME" in name:
-            set_principled_value(material, ["Metallic"], 0.95)
-            set_principled_value(material, ["Roughness"], 0.18)
+def finish(obj,name,material,parent=None,bevel=.0):
+    obj.name=name; obj.data.name=name+'_MESH'; obj.parent=parent
+    if material: obj.data.materials.append(material)
+    for p in obj.data.polygons: p.use_smooth=True
+    if bevel:
+        mod=obj.modifiers.new('NH_Bevel','BEVEL'); mod.width=bevel; mod.segments=2; mod.limit_method='ANGLE'
+    obj['nomadhub_semantic_node']=name
+    return obj
 
 
-def prepare_meshes():
-    modifier_summary = {}
-    for obj in bpy.data.objects:
-        if obj.type != "MESH":
-            continue
-        for polygon in obj.data.polygons:
-            polygon.use_smooth = True
-        obj["nomadhub_semantic_node"] = obj.name
-        obj["nomadhub_source"] = "S3_R3_GLTF_IMPORT"
-        if obj.name == "BODY_SHELL":
-            bevel = obj.modifiers.new(name="NH_Body_Bevel", type="BEVEL")
-            bevel.width = 0.006
-            bevel.segments = 2
-            bevel.limit_method = "ANGLE"
-            solidify = obj.modifiers.new(name="NH_Body_Thickness", type="SOLIDIFY")
-            solidify.thickness = 0.012
-            solidify.offset = -1.0
-        elif obj.name.startswith("GLASS_"):
-            solidify = obj.modifiers.new(name="NH_Glass_Thickness", type="SOLIDIFY")
-            solidify.thickness = 0.004
-            solidify.offset = 0.0
-        elif (
-            obj.name.startswith("DOOR_")
-            or obj.name.startswith("HATCH_")
-            or "BUMPER" in obj.name
-            or "MIRROR" in obj.name
-        ):
-            bevel = obj.modifiers.new(name="NH_Edge_Bevel", type="BEVEL")
-            bevel.width = 0.003
-            bevel.segments = 2
-            bevel.limit_method = "ANGLE"
-        if obj.modifiers:
-            modifier_summary[obj.name] = [modifier.type for modifier in obj.modifiers]
-    return modifier_summary
+def box(name,dims,loc,material,parent=None,rot=(0,0,0),bevel=.02):
+    bpy.ops.mesh.primitive_cube_add(location=loc,rotation=rot); o=bpy.context.object
+    o.dimensions=dims; bpy.ops.object.transform_apply(location=False,rotation=False,scale=True)
+    return finish(o,name,material,parent,bevel)
 
 
-def keyframe_rotation(obj, frame, axis_index, value):
-    obj.rotation_mode = "XYZ"
-    obj.rotation_euler[axis_index] = value
-    obj.keyframe_insert(data_path="rotation_euler", index=axis_index, frame=frame)
+def child_box(name,dims,loc,material,parent,bevel=.012):
+    o=box(name,dims,(0,0,0),material,None,bevel=bevel); o.parent=parent; o.location=loc; return o
 
 
-def keyframe_location(obj, frame, axis_index, value):
-    obj.location[axis_index] = value
-    obj.keyframe_insert(data_path="location", index=axis_index, frame=frame)
+def profile_prism(name,profile,width,material,parent):
+    y=width/2; verts=[(x,-y,z) for x,z in profile]+[(x,y,z) for x,z in profile]; n=len(profile)
+    faces=[]; faces.append(tuple(range(n-1,-1,-1))); faces.append(tuple(range(n,2*n)))
+    for i in range(n):
+        j=(i+1)%n; faces.append((i,j,n+j,n+i))
+    mesh=bpy.data.meshes.new(name+'_MESH'); mesh.from_pydata(verts,[],faces); mesh.update()
+    o=bpy.data.objects.new(name,mesh); bpy.context.scene.collection.objects.link(o)
+    return finish(o,name,material,parent,.025)
 
 
-def create_animation():
-    scene = bpy.context.scene
-    scene.frame_start = 1
-    scene.frame_end = 120
-    scene.render.fps = 30
-    door_specs = {
-        "DOOR_DRIVER_L_ROOT": (2, math.radians(-68)),
-        "DOOR_PASSENGER_R_ROOT": (2, math.radians(68)),
-        "DOOR_LIVING_R_ROOT": (2, math.radians(82)),
-    }
-    hatch_specs = {
-        "HATCH_L_A_ROOT": (0, math.radians(-72)),
-        "HATCH_L_B_ROOT": (0, math.radians(-72)),
-        "HATCH_L_C_ROOT": (0, math.radians(-72)),
-        "HATCH_R_A_ROOT": (0, math.radians(72)),
-        "HATCH_R_B_ROOT": (0, math.radians(72)),
-        "HATCH_R_C_ROOT": (0, math.radians(72)),
-    }
-    animated = []
-    for name, (axis, angle) in {**door_specs, **hatch_specs}.items():
-        obj = find_object(name)
-        if not obj:
-            continue
-        keyframe_rotation(obj, 1, axis, 0.0)
-        keyframe_rotation(obj, 48, axis, angle)
-        keyframe_rotation(obj, 96, axis, 0.0)
-        animated.append(name)
-    step = find_object("STEP_LIVING_R_ROOT")
-    if step:
-        initial = step.location.y
-        keyframe_location(step, 1, 1, initial)
-        keyframe_location(step, 48, 1, initial + 0.22)
-        keyframe_location(step, 96, 1, initial)
-        animated.append(step.name)
-    for name in ("WHEEL_FL_ROOT", "WHEEL_FR_ROOT", "WHEEL_RL_ROOT", "WHEEL_RR_ROOT"):
-        obj = find_object(name)
-        if not obj:
-            continue
-        keyframe_rotation(obj, 1, 1, 0.0)
-        keyframe_rotation(obj, 120, 1, math.radians(720))
-        animated.append(name)
-    for action in bpy.data.actions:
-        action["nomadhub_generated_action"] = True
-    return sorted(set(animated))
+def wheel(name,loc,parent,bodymat,rubber):
+    root=empty(name+'_ROOT',loc,parent)
+    bpy.ops.mesh.primitive_torus_add(major_radius=.31,minor_radius=.105,major_segments=32,minor_segments=12,rotation=(math.pi/2,0,0))
+    tire=finish(bpy.context.object,name+'_TIRE',rubber,root,.005); tire.location=(0,0,0)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24,radius=.245,depth=.12,rotation=(math.pi/2,0,0))
+    rim=finish(bpy.context.object,name+'_RIM',bodymat,root,.004); rim.location=(0,0,0)
+    return root
 
 
-def create_collections_and_metadata(source_sha):
-    scene = bpy.context.scene
-    scene["nomadhub_project"] = "NomadHub General3"
-    scene["nomadhub_version"] = "V1.7"
-    scene["nomadhub_stage"] = "REAL_BLEND_REBUILD"
-    scene["nomadhub_source_glb_sha256"] = source_sha
-    scene["nomadhub_blender_version"] = bpy.app.version_string
-    scene["nomadhub_units"] = "meters"
-    scene.unit_settings.system = "METRIC"
-    scene.unit_settings.length_unit = "METERS"
-    scene.unit_settings.scale_length = 1.0
-    manifest_collection = bpy.data.collections.get("NOMADHUB_PROJECT_METADATA")
-    if manifest_collection is None:
-        manifest_collection = bpy.data.collections.new("NOMADHUB_PROJECT_METADATA")
-        scene.collection.children.link(manifest_collection)
-    marker = bpy.data.objects.new("NOMADHUB_BUILD_MANIFEST", None)
-    marker.empty_display_type = "PLAIN_AXES"
-    marker["generated_by"] = "Blender Python API"
-    marker["source_sha256"] = source_sha
-    marker["blender_version"] = bpy.app.version_string
-    marker["warning"] = "Imported S3 R3 geometry with Blender-native modifiers and actions."
-    manifest_collection.objects.link(marker)
+def animate(root,axis,angle):
+    root.rotation_mode='XYZ'
+    for f,v in ((1,0),(48,angle),(96,0)):
+        root.rotation_euler[axis]=v; root.keyframe_insert('rotation_euler',index=axis,frame=f)
 
 
-def save_project(output_path):
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=str(output_path), compress=True)
-
-
-def export_roundtrip(output_path):
-    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_scene.gltf(
-        filepath=str(output_path),
-        export_format="GLB",
-        export_apply=True,
-        export_animations=True,
-        export_yup=True,
-    )
-
-
-def write_manifest(path, source_path, output_path, roundtrip_path, modifier_summary, animated):
-    object_types = {}
-    for obj in bpy.data.objects:
-        object_types[obj.type] = object_types.get(obj.type, 0) + 1
-    payload = {
-        "project": "NomadHub General3",
-        "version": "V1.7",
-        "artifact_type": "genuine_blender_project",
-        "blender_version": bpy.app.version_string,
-        "source_glb": str(source_path),
-        "source_glb_sha256": hashlib.sha256(Path(source_path).read_bytes()).hexdigest(),
-        "blend_file": str(output_path),
-        "blend_bytes": Path(output_path).stat().st_size,
-        "blend_sha256": hashlib.sha256(Path(output_path).read_bytes()).hexdigest(),
-        "roundtrip_glb": str(roundtrip_path),
-        "roundtrip_glb_bytes": Path(roundtrip_path).stat().st_size,
-        "roundtrip_glb_sha256": hashlib.sha256(Path(roundtrip_path).read_bytes()).hexdigest(),
-        "objects": len(bpy.data.objects),
-        "object_types": object_types,
-        "meshes": len(bpy.data.meshes),
-        "materials": len(bpy.data.materials),
-        "actions": len(bpy.data.actions),
-        "animated_roots": animated,
-        "modifier_objects": modifier_summary,
-        "scene_units": {
-            "system": bpy.context.scene.unit_settings.system,
-            "length_unit": bpy.context.scene.unit_settings.length_unit,
-            "scale_length": bpy.context.scene.unit_settings.scale_length,
-        },
-        "scope_note": (
-            "This is a real Blender .blend saved by Blender itself. "
-            "Its geometry originates from the S3 R3 GLB and remains a rebuild/import baseline, "
-            "not a claim of hand-authored production topology."
-        ),
-    }
-    Path(path).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+def look_at(obj,target):
+    obj.rotation_euler=(Vector(target)-obj.location).to_track_quat('-Z','Y').to_euler()
 
 
 def main():
-    args = parse_args()
-    source_path = Path(args.input)
-    output_path = Path(args.output)
-    roundtrip_path = Path(args.roundtrip)
-    manifest_path = Path(args.manifest)
-    source_sha = hashlib.sha256(source_path.read_bytes()).hexdigest()
-    clear_scene()
-    bpy.ops.import_scene.gltf(filepath=str(source_path), import_pack_images=True)
-    prepare_materials()
-    modifier_summary = prepare_meshes()
-    animated = create_animation()
-    create_collections_and_metadata(source_sha)
-    save_project(output_path)
-    export_roundtrip(roundtrip_path)
-    save_project(output_path)
-    write_manifest(manifest_path, source_path, output_path, roundtrip_path, modifier_summary, animated)
-    print("NOMADHUB_BLEND_BUILD_OK")
-    print(json.dumps({
-        "blend": str(output_path),
-        "roundtrip": str(roundtrip_path),
-        "manifest": str(manifest_path),
-        "blender_version": bpy.app.version_string,
-        "objects": len(bpy.data.objects),
-        "actions": len(bpy.data.actions),
-    }, ensure_ascii=False))
+    a=args(); clear(); sc=bpy.context.scene
+    sc.unit_settings.system='METRIC'; sc.unit_settings.length_unit='METERS'; sc.unit_settings.scale_length=1
+    sc.frame_start=1; sc.frame_end=120; sc.render.fps=30
+    silver=mat('MAT_BODY_SILVER',(.72,.76,.80),.18,.25); dark=mat('MAT_TRIM',(.04,.05,.06),.05,.32)
+    glass=mat('MAT_GLASS',(.025,.07,.11),0,.12,.65); rubber=mat('MAT_RUBBER',(.015,.018,.02),0,.86)
+    cyan=mat('MAT_ACCENT_CYAN',(0,.58,.65),.1,.28); red=mat('MAT_TAILLIGHT',(.55,.02,.01),.05,.25)
+    root=empty('RV_ROOT'); body=empty('BODY',parent=root); gcol=empty('GLASS',parent=root); doors=empty('DOORS',parent=root)
+    hatches=empty('HATCHES',parent=root); wheels=empty('WHEELS',parent=root); roof=empty('ROOF',parent=root)
+    lights=empty('LIGHTS',parent=root); mirrors=empty('MIRRORS',parent=root)
+    box('BODY_MAIN',(7.05,2.30,2.35),(0.80,0,1.48),silver,body,bevel=.06)
+    profile=[(-4.43,.35),(-4.38,1.15),(-4.08,2.20),(-3.62,2.76),(-2.60,2.76),(-2.60,.35)]
+    profile_prism('BODY_CAB',profile,2.26,silver,body)
+    box('FRONT_BUMPER',(.16,1.78,.23),(-4.46,0,.44),dark,body,bevel=.06)
+    box('REAR_BUMPER',(.16,1.82,.23),(4.43,0,.44),dark,body,bevel=.06)
+    box('SIDE_SKIRT_L',(7.1,.10,.18),(.45,-1.15,.43),dark,body,bevel=.03)
+    box('SIDE_SKIRT_R',(7.1,.10,.18),(.45,1.15,.43),dark,body,bevel=.03)
+    box('GLASS_WINDSHIELD',(.055,1.92,.88),(-4.09,0,2.18),glass,gcol,rot=(0,-math.radians(17),0),bevel=.035)
+    for side,suf in ((-1,'L'),(1,'R')):
+        box('GLASS_CAB_'+suf,(1.0,.035,.72),(-3.48,side*1.145,2.02),glass,gcol,bevel=.04)
+        for i,(x,w) in enumerate(((-1.75,1.05),(-.35,1.05),(1.45,1.30),(3.10,.90)),1):
+            box(f'GLASS_LIVING_{suf}_{i:02}',(w,.035,.68),(x,side*1.165,2.08),glass,gcol,bevel=.045)
+    box('GLASS_REAR',(.035,1.35,.65),(4.47,0,1.98),glass,gcol,bevel=.04)
+    specs=[('DOOR_DRIVER_L_ROOT',(-4.02,-1.18,.45),(0.82,.05,1.72),(.41,0,.86),-68),('DOOR_PASSENGER_R_ROOT',(-4.02,1.18,.45),(0.82,.05,1.72),(.41,0,.86),68),('DOOR_LIVING_R_ROOT',(-.82,1.18,.34),(.78,.05,1.96),(.39,0,.98),82)]
+    for n,loc,dims,local,deg in specs:
+        r=empty(n,loc,doors); child_box(n.replace('_ROOT',''),dims,local,silver,r); animate(r,2,math.radians(deg))
+    for side,suf,sgn in ((-1,'L',-1),(1,'R',1)):
+        for i,x in enumerate((-1.95,.35,2.78),1):
+            r=empty(f'HATCH_{suf}_{i}_ROOT',(x,side*1.18,.92),hatches)
+            child_box(f'HATCH_{suf}_{i}',(1.05,.045,.55),(0,0,-.275),silver,r); animate(r,0,math.radians(70*sgn))
+    for n,x,y in (('WHEEL_FL',-3.245,-1.06),('WHEEL_FR',-3.245,1.06),('WHEEL_RL',1.905,-1.06),('WHEEL_RR',1.905,1.06)):
+        r=wheel(n,(x,y,.43),wheels,silver,rubber)
+        r.rotation_mode='XYZ'; r.rotation_euler[1]=0; r.keyframe_insert('rotation_euler',index=1,frame=1); r.rotation_euler[1]=math.radians(720); r.keyframe_insert('rotation_euler',index=1,frame=120)
+    box('ROOF_AC',(.95,.78,.24),(-2.05,0,2.91),silver,roof,bevel=.08)
+    box('SOLAR_ARRAY',(2.45,1.55,.06),(.05,0,2.82),dark,roof,bevel=.01)
+    box('ROOF_SKYLIGHT',(.65,.55,.10),(1.70,0,2.86),glass,roof,bevel=.04)
+    box('AWNING_R',(4.7,.14,.16),(.40,1.18,2.68),dark,roof,bevel=.05)
+    box('FRONT_GRILLE',(.045,1.28,.52),(-4.49,0,.92),dark,lights,bevel=.05)
+    for y in (-.73,.73): box('HEADLIGHT_'+('L' if y<0 else 'R'),(.05,.36,.20),(-4.50,y,1.30),cyan,lights,bevel=.06)
+    for y in (-.78,.78): box('TAILLIGHT_'+('L' if y<0 else 'R'),(.05,.22,.60),(4.50,y,1.18),red,lights,bevel=.05)
+    for side,suf in ((-1,'L'),(1,'R')):
+        mr=empty('MIRROR_'+suf+'_ROOT',(-3.82,side*1.18,1.82),mirrors)
+        child_box('MIRROR_'+suf+'_HOUSING',(.25,.23,.30),(-.10,side*.19,.02),silver,mr,.04)
+        child_box('MIRROR_'+suf+'_GLASS',(.12,.025,.20),(-.13,side*.31,.02),glass,mr,.02)
+    box('ACCENT_L',(4.8,.018,.07),(.35,-1.185,1.15),cyan,body,rot=(0,math.radians(-2),0),bevel=.01)
+    box('ACCENT_R',(4.8,.018,.07),(.35,1.185,1.15),cyan,body,rot=(0,math.radians(-2),0),bevel=.01)
+    cam_data=bpy.data.cameras.new('Camera'); cam=bpy.data.objects.new('Camera',cam_data); sc.collection.objects.link(cam); sc.camera=cam
+    cam.location=(-11,-10,7.2); look_at(cam,(0,0,1.35)); cam.data.lens=55
+    for name,loc,energy,size in [('Key',(-5,-6,9),1800,5),('Fill',(4,-2,6),1100,4),('Rim',(2,7,8),1300,4)]:
+        ld=bpy.data.lights.new(name,'AREA'); ld.energy=energy; ld.shape='DISK'; ld.size=size
+        lo=bpy.data.objects.new(name,ld); sc.collection.objects.link(lo); lo.location=loc; look_at(lo,(0,0,1.3))
+    sc.render.engine='BLENDER_EEVEE_NEXT'; sc.render.resolution_x=1280; sc.render.resolution_y=720; sc.render.resolution_percentage=100
+    sc.render.image_settings.file_format='PNG'; sc.render.filepath=a.preview; sc.world.color=(.035,.045,.06)
+    sc['nomadhub_project']='NomadHub General3'; sc['nomadhub_version']='V1.7'; sc['build_type']='BLENDER_NATIVE_REBUILD'
+    Path(a.output).parent.mkdir(parents=True,exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=a.output,compress=True)
+    bpy.ops.render.render(write_still=True)
+    bpy.ops.export_scene.gltf(filepath=a.roundtrip,export_format='GLB',export_animations=True,export_apply=True)
+    bpy.ops.wm.save_as_mainfile(filepath=a.output,compress=True)
+    payload={'artifact_type':'genuine_blender_native_project','blender_version':bpy.app.version_string,'blend':a.output,'blend_bytes':Path(a.output).stat().st_size,'blend_sha256':hashlib.sha256(Path(a.output).read_bytes()).hexdigest(),'roundtrip_glb':a.roundtrip,'roundtrip_sha256':hashlib.sha256(Path(a.roundtrip).read_bytes()).hexdigest(),'preview':a.preview,'objects':len(bpy.data.objects),'meshes':len(bpy.data.meshes),'materials':len(bpy.data.materials),'actions':len(bpy.data.actions),'units':'meters','scope_note':'Genuine Blender-saved editable baseline generated with Blender-native objects, modifiers and keyframes; not yet hand-retopologized production surfacing.'}
+    Path(a.manifest).write_text(json.dumps(payload,ensure_ascii=False,indent=2),encoding='utf-8')
+    print('NOMADHUB_NATIVE_BLEND_OK'); print(json.dumps(payload,ensure_ascii=False))
 
-
-if __name__ == "__main__":
-    main()
+if __name__=='__main__': main()
