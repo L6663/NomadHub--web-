@@ -99,6 +99,7 @@ jobs:
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
+          PYTHONPATH: "blender_rebuild"
         run: |
           set -euo pipefail
           test -s build/output/NomadHub_General3_V1.7_S2_R1.blend
