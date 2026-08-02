@@ -6,7 +6,6 @@ on:
     paths:
       - "blender_rebuild/**"
       - ".github/workflows/build-real-blend.yml"
-      - "PROJECT_STAGE.json"
   workflow_dispatch:
 
 permissions:
@@ -83,12 +82,16 @@ jobs:
             --report build/output/S1C_VERIFICATION_REPORT.json
 
           python - <<'PY'
+          import hashlib
           import json
           from pathlib import Path
 
-          manifest = json.loads(Path("build/output/BLENDER_BUILD_MANIFEST.json").read_text())
-          clearance = json.loads(Path("build/output/S1C_Collision_Clearance.json").read_text())
-          verification = json.loads(Path("build/output/S1C_VERIFICATION_REPORT.json").read_text())
+          manifest_path = Path("build/output/BLENDER_BUILD_MANIFEST.json")
+          verification_path = Path("build/output/S1C_VERIFICATION_REPORT.json")
+          clearance_path = Path("build/output/S1C_Collision_Clearance.json")
+          manifest = json.loads(manifest_path.read_text())
+          clearance = json.loads(clearance_path.read_text())
+          verification = json.loads(verification_path.read_text())
 
           assert manifest["artifact_type"] == "genuine_blender_native_project"
           assert manifest["stage"] == "S1C"
@@ -98,6 +101,13 @@ jobs:
           assert clearance["result"] == "PASS"
           assert verification["result"] == "PASS"
           assert verification["s2_ready"] is True
+
+          manifest["stage_status"] = "ACCEPTED"
+          manifest["s2_ready"] = True
+          manifest["verification_report"] = verification_path.name
+          manifest["verification_sha256"] = hashlib.sha256(verification_path.read_bytes()).hexdigest()
+          manifest["clearance_sha256"] = hashlib.sha256(clearance_path.read_bytes()).hexdigest()
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
           print("S1C_MANIFEST_AND_GATE_VALIDATED")
           PY
 
@@ -107,7 +117,7 @@ jobs:
       - name: Upload Blender S1C artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NomadHub-General3-V1.7-S1C
+          name: NomadHub-General3-V1.7-S1C-ACCEPTED
           path: build/output/
           if-no-files-found: error
           retention-days: 14
