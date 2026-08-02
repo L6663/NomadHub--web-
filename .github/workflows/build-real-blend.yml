@@ -8,6 +8,7 @@ on:
       - "blender_rebuild/finalize_s1c_hierarchy.py"
       - "blender_rebuild/validate_s1c.py"
       - "blender_rebuild/validate_s1c_hierarchy.py"
+      - "blender_rebuild/ci_s1c.sh"
       - ".github/workflows/build-real-blend.yml"
   workflow_dispatch:
 
@@ -20,6 +21,7 @@ concurrency:
 
 jobs:
   build-blend:
+    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.head_ref, 'feat/s2-') }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -57,128 +59,9 @@ jobs:
           fi
           ./blender-4.2.0-linux-x64/blender --version
 
-      - name: Build Blender-native S1C repair candidate
+      - name: Build and validate frozen S1C
         shell: bash
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-        run: |
-          set -euo pipefail
-          ./blender-4.2.0-linux-x64/blender \
-            --background \
-            --python blender_rebuild/build_real_blend.py \
-            -- \
-            --output build/output/NomadHub_General3_V1.7_S1C.blend \
-            --roundtrip build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
-            --manifest build/output/BLENDER_BUILD_MANIFEST.json \
-            --preview build/output/NomadHub_General3_V1.7_S1C_Preview.png \
-            --clearance build/output/S1C_Collision_Clearance.json
-
-      - name: Finalize animated door-glass hierarchy
-        shell: bash
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-        run: |
-          set -euo pipefail
-          ./blender-4.2.0-linux-x64/blender \
-            --background build/output/NomadHub_General3_V1.7_S1C.blend \
-            --python blender_rebuild/finalize_s1c_hierarchy.py \
-            -- \
-            --blend build/output/NomadHub_General3_V1.7_S1C.blend \
-            --roundtrip build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
-            --manifest build/output/BLENDER_BUILD_MANIFEST.json \
-            --preview build/output/NomadHub_General3_V1.7_S1C_Preview.png
-
-      - name: Validate Blender and GLB round trip
-        shell: bash
-        env:
-          LIBGL_ALWAYS_SOFTWARE: "1"
-        run: |
-          set -euo pipefail
-          test -s build/output/NomadHub_General3_V1.7_S1C.blend
-          test -s build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb
-          test -s build/output/NomadHub_General3_V1.7_S1C_Preview.png
-          test -s build/output/S1C_Left_Orthographic.png
-          test -s build/output/S1C_Right_Orthographic.png
-          test -s build/output/S1C_Top_Orthographic.png
-          test -s build/output/S1C_Left_Open.png
-          test -s build/output/S1C_Right_Open.png
-          test -s build/output/BLENDER_BUILD_MANIFEST.json
-          test -s build/output/S1C_Collision_Clearance.json
-
-          if compgen -G "build/output/*.blend1" > /dev/null; then
-            echo "Unexpected Blender backup file in delivery artifact"
-            ls -l build/output/*.blend1
-            exit 1
-          fi
-
-          ./blender-4.2.0-linux-x64/blender \
-            --background build/output/NomadHub_General3_V1.7_S1C.blend \
-            --python blender_rebuild/validate_s1c.py \
-            -- \
-            --glb build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
-            --clearance build/output/S1C_Collision_Clearance.json \
-            --report build/output/S1C_VERIFICATION_REPORT.json
-
-          ./blender-4.2.0-linux-x64/blender \
-            --background build/output/NomadHub_General3_V1.7_S1C.blend \
-            --python blender_rebuild/validate_s1c_hierarchy.py \
-            -- \
-            --glb build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
-            --report build/output/S1C_VERIFICATION_REPORT.json
-
-          python - <<'PY'
-          import hashlib
-          import json
-          from pathlib import Path
-
-          manifest_path = Path("build/output/BLENDER_BUILD_MANIFEST.json")
-          verification_path = Path("build/output/S1C_VERIFICATION_REPORT.json")
-          clearance_path = Path("build/output/S1C_Collision_Clearance.json")
-          manifest = json.loads(manifest_path.read_text())
-          clearance = json.loads(clearance_path.read_text())
-          verification = json.loads(verification_path.read_text())
-
-          assert manifest["artifact_type"] == "genuine_blender_native_project"
-          assert manifest["stage"] == "S1C"
-          assert manifest["blender_version"].startswith("4.2")
-          assert manifest["actions"] >= 13
-          assert manifest["wheelbase_m"] == 5.15
-          assert manifest["door_glass_hierarchy"] == {
-              "DOOR_DRIVER_L_GLASS": "DOOR_DRIVER_L_ROOT",
-              "DOOR_PASSENGER_R_GLASS": "DOOR_PASSENGER_R_ROOT",
-              "DOOR_LIVING_R_GLASS": "DOOR_LIVING_R_ROOT",
-          }
-          assert clearance["result"] == "PASS"
-          assert verification["result"] == "PASS"
-          assert verification["s2_ready"] is True
-          assert verification["door_glass_hierarchy"]["result"] == "PASS"
-
-          manifest["stage_status"] = "ACCEPTED"
-          manifest["s2_ready"] = True
-          manifest["verification_report"] = verification_path.name
-          manifest["verification_sha256"] = hashlib.sha256(verification_path.read_bytes()).hexdigest()
-          manifest["clearance_sha256"] = hashlib.sha256(clearance_path.read_bytes()).hexdigest()
-          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
-          print("S1C_MANIFEST_AND_GATE_VALIDATED")
-          PY
-
-          (
-            cd build/output
-            sha256sum \
-              BLENDER_BUILD_MANIFEST.json \
-              NomadHub_General3_V1.7_S1C.blend \
-              NomadHub_General3_V1.7_S1C_Preview.png \
-              NomadHub_General3_V1.7_S1C_Roundtrip.glb \
-              S1C_Collision_Clearance.json \
-              S1C_Left_Open.png \
-              S1C_Left_Orthographic.png \
-              S1C_Right_Open.png \
-              S1C_Right_Orthographic.png \
-              S1C_Top_Orthographic.png \
-              S1C_VERIFICATION_REPORT.json \
-              > SHA256SUMS.txt
-            sha256sum -c SHA256SUMS.txt
-          )
+        run: bash blender_rebuild/ci_s1c.sh
 
       - name: Upload Blender S1C artifact
         uses: actions/upload-artifact@v4
