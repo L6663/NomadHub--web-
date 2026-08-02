@@ -1,0 +1,195 @@
+name: Build S2 Continuous Body R2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "blender_rebuild/build_s2_body_r2.py"
+      - "blender_rebuild/validate_s2_body_r2.py"
+      - "blender_rebuild/build_s2_body.py"
+      - "blender_rebuild/validate_s2_body.py"
+      - "blender_rebuild/build_real_blend.py"
+      - "blender_rebuild/finalize_s1c_hierarchy.py"
+      - "blender_rebuild/validate_s1c.py"
+      - ".github/workflows/build-s2-body-r2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-s2-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+
+      - name: Install Blender runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 \
+            libxkbcommon0 libsm6 libice6 libxxf86vm1
+
+      - name: Download Blender 4.2 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/source build/output
+          curl --fail --location --retry 4 \
+            "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
+            --output blender.tar.xz
+          echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
+          tar -xf blender.tar.xz
+          ./blender-4.2.0-linux-x64/blender --version
+
+      - name: Rebuild frozen S1C source
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background \
+            --python blender_rebuild/build_real_blend.py \
+            -- \
+            --output build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --roundtrip build/source/NomadHub_General3_V1.7_S1C_SOURCE.glb \
+            --manifest build/source/S1C_SOURCE_MANIFEST.json \
+            --preview build/source/S1C_SOURCE_Preview.png \
+            --clearance build/source/S1C_Collision_Clearance.json
+
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --python blender_rebuild/finalize_s1c_hierarchy.py \
+            -- \
+            --blend build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --roundtrip build/source/NomadHub_General3_V1.7_S1C_SOURCE.glb \
+            --manifest build/source/S1C_SOURCE_MANIFEST.json \
+            --preview build/source/S1C_SOURCE_Preview.png \
+            --skip-proofs
+
+          test -s build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend
+          test -s build/source/S1C_SOURCE_MANIFEST.json
+          test -s build/source/S1C_Collision_Clearance.json
+          cp build/source/S1C_SOURCE_MANIFEST.json build/output/S2_R2_BUILD_MANIFEST.json
+          cp build/source/S1C_Collision_Clearance.json build/output/S1C_Collision_Clearance.json
+
+      - name: Build S2 R2 source topology
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
+            --python blender_rebuild/build_s2_body_r2.py \
+            -- \
+            --output build/output/NomadHub_General3_V1.7_S2_R2.blend \
+            --roundtrip build/output/NomadHub_General3_V1.7_S2_R2.glb \
+            --manifest build/output/S2_R2_BUILD_MANIFEST.json \
+            --preview build/output/S2_R2_Preview.png \
+            --left build/output/S2_R2_Left_Orthographic.png \
+            --right build/output/S2_R2_Right_Orthographic.png \
+            --top build/output/S2_R2_Top_Orthographic.png \
+            --wire-left build/output/S2_R2_Left_Wireframe.png \
+            --wire-right build/output/S2_R2_Right_Wireframe.png
+
+      - name: Validate R2 topology and S1C compatibility
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          test -s build/output/NomadHub_General3_V1.7_S2_R2.blend
+          test -s build/output/NomadHub_General3_V1.7_S2_R2.glb
+          test -s build/output/S2_R2_Preview.png
+          test -s build/output/S2_R2_Left_Orthographic.png
+          test -s build/output/S2_R2_Right_Orthographic.png
+          test -s build/output/S2_R2_Top_Orthographic.png
+          test -s build/output/S2_R2_Left_Wireframe.png
+          test -s build/output/S2_R2_Right_Wireframe.png
+          test -s build/output/S2_R2_BUILD_MANIFEST.json
+          test -s build/output/S1C_Collision_Clearance.json
+
+          if compgen -G "build/output/*.blend1" > /dev/null; then
+            echo "Unexpected Blender backup file in S2 R2 delivery"
+            ls -l build/output/*.blend1
+            exit 1
+          fi
+
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/output/NomadHub_General3_V1.7_S2_R2.blend \
+            --python-expr "import sys; sys.path.insert(0, r'${GITHUB_WORKSPACE}/blender_rebuild')" \
+            --python blender_rebuild/validate_s2_body_r2.py \
+            -- \
+            --glb build/output/NomadHub_General3_V1.7_S2_R2.glb \
+            --clearance build/output/S1C_Collision_Clearance.json \
+            --manifest build/output/S2_R2_BUILD_MANIFEST.json \
+            --report build/output/S2_R2_VERIFICATION_REPORT.json
+
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          manifest_path = Path("build/output/S2_R2_BUILD_MANIFEST.json")
+          report_path = Path("build/output/S2_R2_VERIFICATION_REPORT.json")
+          manifest = json.loads(manifest_path.read_text())
+          report = json.loads(report_path.read_text())
+
+          assert manifest["stage"] == "S2"
+          assert manifest["iteration"] == "R2"
+          assert manifest["body_object"] == "BODY_S2_CONTROL_CAGE"
+          assert manifest["actions"] >= 13
+          assert manifest["topology"]["ring_count"] >= 60
+          assert manifest["topology"]["ring_size"] == 48
+          assert manifest["topology"]["quad_ratio"] == 1.0
+          assert manifest["topology"]["triangles"] == 0
+          assert manifest["topology"]["ngons"] == 0
+          assert manifest["modifier_types"] == ["SUBSURF", "BEVEL"]
+          assert manifest["source_wheel_arch_topology"] is True
+          assert manifest["all_quad_caps"] is True
+          assert report["status"] == "PASS"
+          assert report["s2_r2_ready_for_visual_review"] is True
+          assert report["s2_accepted"] is False
+
+          manifest["stage_status"] = "R2_TECHNICALLY_VALIDATED_VISUAL_REVIEW_REQUIRED"
+          manifest["s2_r2_ready_for_visual_review"] = True
+          manifest["verification_report"] = report_path.name
+          manifest["verification_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+          manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+          print("S2_R2_TECHNICAL_CANDIDATE_VALIDATED")
+          PY
+
+          (
+            cd build/output
+            sha256sum \
+              NomadHub_General3_V1.7_S2_R2.blend \
+              NomadHub_General3_V1.7_S2_R2.glb \
+              S1C_Collision_Clearance.json \
+              S2_R2_BUILD_MANIFEST.json \
+              S2_R2_Left_Orthographic.png \
+              S2_R2_Left_Wireframe.png \
+              S2_R2_Preview.png \
+              S2_R2_Right_Orthographic.png \
+              S2_R2_Right_Wireframe.png \
+              S2_R2_Top_Orthographic.png \
+              S2_R2_VERIFICATION_REPORT.json \
+              > SHA256SUMS.txt
+            sha256sum -c SHA256SUMS.txt
+          )
+
+          cat build/output/S2_R2_VERIFICATION_REPORT.json
+
+      - name: Upload S2 R2 candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-General3-V1.7-S2-R2-CANDIDATE
+          path: build/output/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
