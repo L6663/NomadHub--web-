@@ -100,6 +100,20 @@ def render_proof(scene, camera, path, location, target, frame, ortho_scale=None)
     bpy.ops.render.render(write_still=True)
 
 
+def active_actions_merged_mode():
+    properties = bpy.ops.export_scene.gltf.get_rna_type().properties
+    mode_property = properties.get("export_animation_mode")
+    if mode_property is None:
+        raise RuntimeError("glTF exporter does not expose export_animation_mode")
+    for item in mode_property.enum_items:
+        searchable = f"{item.identifier} {item.name} {item.description}".lower()
+        if "active" in searchable and "merged" in searchable:
+            return item.identifier
+    raise RuntimeError(
+        "Blender glTF exporter has no Active Actions Merged animation mode"
+    )
+
+
 def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -149,10 +163,12 @@ def main():
     render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 10.5)
     scene.frame_set(1)
 
+    animation_mode = active_actions_merged_mode()
     bpy.ops.export_scene.gltf(
         filepath=args.roundtrip,
         export_format="GLB",
         export_animations=True,
+        export_animation_mode=animation_mode,
         export_apply=True,
         export_extras=True,
     )
@@ -175,6 +191,7 @@ def main():
                 name: parent_name for name, parent_name, _, _ in DOOR_GLASS
             },
             "removed_static_glass": list(STATIC_GLASS_TO_REMOVE),
+            "glb_animation_export_mode": animation_mode,
             "stage_status": "CANDIDATE_PENDING_HIERARCHY_VALIDATION",
         }
     )
@@ -184,6 +201,7 @@ def main():
     )
     print("NOMADHUB_S1C_HIERARCHY_FINALIZED")
     print(json.dumps(manifest["door_glass_hierarchy"], ensure_ascii=False))
+    print(f"GLB_ANIMATION_EXPORT_MODE={animation_mode}")
 
 
 if __name__ == "__main__":
