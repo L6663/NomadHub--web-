@@ -36,6 +36,34 @@ entry = fix2.entry
 clearance = fix2.clearance
 
 
+# F2 creates temporary compatibility wheel-lip curves before F3 replaces their
+# material with an invisible compatibility material. The base R4 module does
+# not export the helper used by F2, so provide it here before ORIGINAL_APPLY is
+# ever executed. Keeping the dependency beside the F3 entrypoint prevents a
+# separate execution shim from drifting away from the workflow entrypoint.
+def make_curve_polyline(name, points, bevel_depth, material, parent):
+    r4.remove_object(name)
+    curve = bpy.data.curves.new(f"{name}_CURVE", "CURVE")
+    curve.dimensions = "3D"
+    curve.resolution_u = 2
+    curve.bevel_depth = bevel_depth
+    curve.bevel_resolution = 3
+    spline = curve.splines.new("POLY")
+    spline.points.add(len(points) - 1)
+    for index, point in enumerate(points):
+        spline.points[index].co = (*point, 1.0)
+    obj = bpy.data.objects.new(name, curve)
+    bpy.context.scene.collection.objects.link(obj)
+    obj.parent = parent
+    curve.materials.append(material)
+    obj["nomadhub_semantic_node"] = name
+    obj["s2_r4_f3_explicit_curve_helper"] = True
+    return obj
+
+
+r4.make_curve_polyline = make_curve_polyline
+
+
 # The true source opening runs approximately from (-4.300, 2.350) to
 # (-3.860, 2.760) in the longitudinal/vertical plane.
 WINDSHIELD_DX_M = 0.440
