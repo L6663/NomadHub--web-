@@ -6,6 +6,7 @@ on:
     paths:
       - "blender_rebuild/**"
       - ".github/workflows/build-real-blend.yml"
+      - "PROJECT_STAGE.json"
   workflow_dispatch:
 
 permissions:
@@ -40,7 +41,7 @@ jobs:
           tar -xf blender.tar.xz
           ./blender-4.2.0-linux-x64/blender --version
 
-      - name: Build Blender-native editable project
+      - name: Build Blender-native S1C repair candidate
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
@@ -50,45 +51,58 @@ jobs:
             --background \
             --python blender_rebuild/build_real_blend.py \
             -- \
-            --output build/output/NomadHub_General3_V1.7_REAL.blend \
-            --roundtrip build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb \
+            --output build/output/NomadHub_General3_V1.7_S1C.blend \
+            --roundtrip build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
             --manifest build/output/BLENDER_BUILD_MANIFEST.json \
-            --preview build/output/NomadHub_General3_V1.7_BlenderPreview.png
+            --preview build/output/NomadHub_General3_V1.7_S1C_Preview.png \
+            --clearance build/output/S1C_Collision_Clearance.json
 
-      - name: Validate generated artifacts
+      - name: Validate Blender and GLB round trip
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
-          test -s build/output/NomadHub_General3_V1.7_REAL.blend
-          test -s build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb
-          test -s build/output/NomadHub_General3_V1.7_BlenderPreview.png
+          test -s build/output/NomadHub_General3_V1.7_S1C.blend
+          test -s build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb
+          test -s build/output/NomadHub_General3_V1.7_S1C_Preview.png
           test -s build/output/BLENDER_BUILD_MANIFEST.json
+          test -s build/output/S1C_Collision_Clearance.json
 
           ./blender-4.2.0-linux-x64/blender \
-            --background build/output/NomadHub_General3_V1.7_REAL.blend \
-            --python-expr "import bpy; assert bpy.data.objects.get('RV_ROOT') is not None; assert len(bpy.data.actions) >= 1; assert bpy.context.scene.unit_settings.system == 'METRIC'; print('BLEND_REOPEN_VALIDATED')"
+            --background build/output/NomadHub_General3_V1.7_S1C.blend \
+            --python blender_rebuild/validate_s1c.py \
+            -- \
+            --glb build/output/NomadHub_General3_V1.7_S1C_Roundtrip.glb \
+            --clearance build/output/S1C_Collision_Clearance.json \
+            --report build/output/S1C_VERIFICATION_REPORT.json
 
           python - <<'PY'
           import json
           from pathlib import Path
 
           manifest = json.loads(Path("build/output/BLENDER_BUILD_MANIFEST.json").read_text())
+          clearance = json.loads(Path("build/output/S1C_Collision_Clearance.json").read_text())
+          verification = json.loads(Path("build/output/S1C_VERIFICATION_REPORT.json").read_text())
+
           assert manifest["artifact_type"] == "genuine_blender_native_project"
+          assert manifest["stage"] == "S1C"
           assert manifest["blender_version"].startswith("4.2")
-          assert manifest["actions"] >= 1
-          assert manifest["objects"] >= 1
-          print("BLENDER_MANIFEST_VALIDATED")
+          assert manifest["actions"] >= 13
+          assert manifest["wheelbase_m"] == 5.15
+          assert clearance["result"] == "PASS"
+          assert verification["result"] == "PASS"
+          assert verification["s2_ready"] is True
+          print("S1C_MANIFEST_AND_GATE_VALIDATED")
           PY
 
           sha256sum build/output/* > build/output/SHA256SUMS.txt
-          cat build/output/BLENDER_BUILD_MANIFEST.json
+          cat build/output/S1C_VERIFICATION_REPORT.json
 
-      - name: Upload Blender project artifact
+      - name: Upload Blender S1C artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NomadHub-General3-V1.7-REAL-BLEND
+          name: NomadHub-General3-V1.7-S1C
           path: build/output/
           if-no-files-found: error
           retention-days: 14
