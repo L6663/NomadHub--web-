@@ -57,27 +57,31 @@ jobs:
 
       - name: Validate generated artifacts
         shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
         run: |
           set -euo pipefail
           test -s build/output/NomadHub_General3_V1.7_REAL.blend
           test -s build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb
           test -s build/output/NomadHub_General3_V1.7_BlenderPreview.png
           test -s build/output/BLENDER_BUILD_MANIFEST.json
+
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/output/NomadHub_General3_V1.7_REAL.blend \
+            --python-expr "import bpy; assert bpy.data.objects.get('RV_ROOT') is not None; assert len(bpy.data.actions) >= 1; assert bpy.context.scene.unit_settings.system == 'METRIC'; print('BLEND_REOPEN_VALIDATED')"
+
           python - <<'PY'
           import json
           from pathlib import Path
-
-          blend = Path("build/output/NomadHub_General3_V1.7_REAL.blend")
-          header = blend.read_bytes()[:7]
-          assert header == b"BLENDER", f"invalid Blender header: {header!r}"
 
           manifest = json.loads(Path("build/output/BLENDER_BUILD_MANIFEST.json").read_text())
           assert manifest["artifact_type"] == "genuine_blender_native_project"
           assert manifest["blender_version"].startswith("4.2")
           assert manifest["actions"] >= 1
           assert manifest["objects"] >= 1
-          print("BLENDER_ARTIFACT_VALIDATED")
+          print("BLENDER_MANIFEST_VALIDATED")
           PY
+
           sha256sum build/output/* > build/output/SHA256SUMS.txt
           cat build/output/BLENDER_BUILD_MANIFEST.json
 
