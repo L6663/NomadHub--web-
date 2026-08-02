@@ -10,6 +10,11 @@ Blender-specific measurement semantics:
 
 import sys
 import traceback
+from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
 import validate_s2_continuous_body as base
 
