@@ -1,0 +1,54 @@
+{
+  "project": "NomadHub General3",
+  "version": "V1.7",
+  "stage": "S2",
+  "round": "R19_FINAL",
+  "result": "PASSED",
+  "next_stage": "S3",
+  "next_stage_status": "READY",
+  "asset": "NomadHub_RV_V1.7_S2_R19_Candidate.glb",
+  "file_size_mb": 0.568,
+  "scene": {
+    "geometry_nodes": 77,
+    "graph_nodes": 92,
+    "vertices": 13250,
+    "triangles": 25554,
+    "materials": 11,
+    "primitives": 77,
+    "attributes": {
+      "POSITION": 77,
+      "NORMAL": 77
+    },
+    "full_extents_m": [8.99, 2.639457, 3.05],
+    "body_extents_m": [8.81, 2.349994, 2.56]
+  },
+  "body_shell": {
+    "connected_components": 1,
+    "outward_face_ratio": 1.0,
+    "inward_face_ratio": 0.0,
+    "intentional_openings": true,
+    "body_width_error_mm": -0.006
+  },
+  "frozen_dimensions_m": {
+    "front_axle_x": -3.245,
+    "rear_axle_x": 1.905,
+    "wheelbase": 5.15,
+    "front_overhang": 1.25,
+    "rear_overhang": 2.59
+  },
+  "gates": {
+    "visual_blockout_consistent": true,
+    "integrated_cab_blockout": true,
+    "single_connected_body_shell": true,
+    "real_window_openings": true,
+    "independent_glass": true,
+    "independent_door_hatch_panels": true,
+    "true_wheel_roots": true,
+    "normal_attributes_complete": true,
+    "outward_normals": true,
+    "body_width_within_10mm": true,
+    "full_length_within_1mm": true,
+    "triangles_within_s2_budget": true,
+    "geometry_nodes_within_proxy_budget": true
+  }
+}
