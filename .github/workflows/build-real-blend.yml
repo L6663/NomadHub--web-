@@ -1,0 +1,95 @@
+name: Build Genuine Blender Project
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "blender_rebuild/**"
+      - ".github/workflows/build-real-blend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-blend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+
+      - name: Install Blender runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 \
+            libxkbcommon0 libsm6 libice6 libxxf86vm1
+
+      - name: Download Blender 4.2 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/output
+          curl --fail --location --retry 4 \
+            "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
+            --output blender.tar.xz
+          echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
+          tar -xf blender.tar.xz
+          ./blender-4.2.0-linux-x64/blender --version
+
+      - name: Build Blender-native editable project
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          ./blender-4.2.0-linux-x64/blender \
+            --background \
+            --python blender_rebuild/build_real_blend.py \
+            -- \
+            --output build/output/NomadHub_General3_V1.7_REAL.blend \
+            --roundtrip build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb \
+            --manifest build/output/BLENDER_BUILD_MANIFEST.json \
+            --preview build/output/NomadHub_General3_V1.7_BlenderPreview.png
+
+      - name: Validate generated artifacts
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+        run: |
+          set -euo pipefail
+          test -s build/output/NomadHub_General3_V1.7_REAL.blend
+          test -s build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb
+          test -s build/output/NomadHub_General3_V1.7_BlenderPreview.png
+          test -s build/output/BLENDER_BUILD_MANIFEST.json
+
+          ./blender-4.2.0-linux-x64/blender \
+            --background build/output/NomadHub_General3_V1.7_REAL.blend \
+            --python-expr "import bpy; assert bpy.data.objects.get('RV_ROOT') is not None; assert len(bpy.data.actions) >= 1; assert bpy.context.scene.unit_settings.system == 'METRIC'; print('BLEND_REOPEN_VALIDATED')"
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("build/output/BLENDER_BUILD_MANIFEST.json").read_text())
+          assert manifest["artifact_type"] == "genuine_blender_native_project"
+          assert manifest["blender_version"].startswith("4.2")
+          assert manifest["actions"] >= 1
+          assert manifest["objects"] >= 1
+          print("BLENDER_MANIFEST_VALIDATED")
+          PY
+
+          sha256sum build/output/* > build/output/SHA256SUMS.txt
+          cat build/output/BLENDER_BUILD_MANIFEST.json
+
+      - name: Upload Blender project artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-General3-V1.7-REAL-BLEND
+          path: build/output/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
