@@ -2,78 +2,82 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T12:59:00+08:00",
+  "updated_at": "2026-08-02T13:22:00+08:00",
   "current_stage": {
-    "id": "S4",
-    "name": "UV展开与Nomad Silver皮肤",
+    "id": "AUDIT_HOLD",
+    "name": "S0-S3真实性与可复现性整改",
     "status": "IN_PROGRESS",
-    "progress_percent": 0,
-    "started_at": "2026-08-02T12:59:00+08:00",
-    "goal": "以S3 R3最终精模为唯一结构基础，完成整车UV分区、左右独立车身皮肤、前后包角连续、品牌文字方向、门缝窗洞轮拱遮罩和纹理审查。",
-    "entry_basis": {
-      "s3_review": "R3_FINAL PASSED",
-      "base_asset": "NomadHub_RV_V1.7_S3_R3_Final.glb",
-      "s3_audit": "docs/stages/S3/S3_R3_Final_Audit.json",
-      "s1_amendment": "NH-V1.7-S1-AMD-001"
-    },
-    "review_status": "NOT_REVIEWED"
+    "reason": "独立审计确认本地文件与GLB真实存在，但S1闭环、Blender建模、视觉门禁、碰撞验证和GitHub完整资产托管均未达到原PASSED表述。暂停S4，先纠正S1-S3。",
+    "audit_path": "docs/audits/S0-S3_真实性与可复现性审计.md"
   },
-  "previous_stage": {
-    "id": "S3",
-    "name": "结构精模与部件拆分",
-    "status": "PASSED",
-    "progress_percent": 100,
-    "review_status": "PASSED",
-    "review_round": "R3_FINAL",
-    "metrics": {
-      "geometry_nodes": 78,
+  "corrected_stage_status": {
+    "S0": {
+      "name": "视觉方向冻结",
+      "status": "CONCEPT_ACCEPTED",
+      "note": "仅作为视觉概念，不是CAD或权威工程图。"
+    },
+    "S1": {
+      "name": "工程参考规范统一",
+      "status": "REWORK_REQUIRED",
+      "note": "轴距修订后未重新闭环门舱、轮拱、窗口和皮肤锚点；存在明确检修舱/轮拱冲突。"
+    },
+    "S2": {
+      "name": "连续车身灰模",
+      "status": "PROTOTYPE_ONLY_REWORK_REQUIRED",
+      "note": "GLB真实，但由Python+trimesh生成；没有.blend文件，也没有独立Blender/Three.js视觉验证。"
+    },
+    "S3": {
+      "name": "结构精模与部件拆分",
+      "status": "REWORK_REQUIRED",
+      "note": "GLB与层级真实，但产品级精模、真实动画、三角面碰撞和Blender母版均未成立。"
+    },
+    "S4": {
+      "name": "UV展开与Nomad Silver皮肤",
+      "status": "PAUSED_BY_AUDIT",
+      "note": "上游母版和工程规范未闭环，禁止继续UV。"
+    }
+  },
+  "verified_real_assets": {
+    "local_sha256_manifests_match": true,
+    "s2_glb_container_valid": true,
+    "s3_glb_container_valid": true,
+    "s2_metrics": {
+      "graph_nodes": 92,
+      "geometry_nodes": 77,
+      "vertices": 13250,
+      "triangles": 25554,
+      "materials": 11,
+      "animations": 0,
+      "textures": 0
+    },
+    "s3_metrics": {
       "graph_nodes": 118,
+      "geometry_nodes": 78,
       "vertices": 20969,
       "triangles": 40534,
       "materials": 14,
-      "body_components": 1,
-      "normal_coverage": "78/78 primitives",
-      "body_outward_face_ratio": 1.0,
-      "body_width_m": 2.349994,
-      "minimum_opening_clearance_mm": 12.381
-    },
-    "deliverables": [
-      "NomadHub_RV_V1.7_S3_R3_Final.glb",
-      "NomadHub_RV_V1.7_S3_R3_OpenState.glb",
-      "docs/stages/S3/S3_R3_Final_Review.md",
-      "docs/stages/S3/S3_R3_Final_Audit.json"
-    ]
+      "animations": 0,
+      "textures": 0,
+      "uv_primitives": "15/78"
+    }
   },
-  "frozen_reference": {
-    "s1_status": "PASSED",
-    "amendment": "NH-V1.7-S1-AMD-001",
-    "front_axle_x_m": -3.245,
-    "rear_axle_x_m": 1.905,
-    "wheelbase_m": 5.15,
-    "front_overhang_m": 1.25,
-    "rear_overhang_m": 2.59
-  },
-  "next_stage": {
-    "id": "S5",
-    "name": "PBR材质与模型优化",
-    "status": "BLOCKED_BY_S4"
-  },
-  "stages": [
-    {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
-    {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100,"amendment":"AMD-001"},
-    {"id":"S2","name":"Blender连续车身灰模","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R19_FINAL"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R3_FINAL"},
-    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"IN_PROGRESS","progress_percent":0},
-    {"id":"S5","name":"PBR材质与模型优化","status":"BLOCKED_BY_S4","progress_percent":0},
-    {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
-    {"id":"S7","name":"Three.js正式接入","status":"NOT_STARTED","progress_percent":0},
-    {"id":"S8","name":"入场动画与模块交互","status":"NOT_STARTED","progress_percent":0},
-    {"id":"S9","name":"整体验收与发布","status":"NOT_STARTED","progress_percent":0}
+  "invalidated_claims": [
+    "S2/S3为Blender建模阶段——实际无任何.blend文件，生成器为Python+trimesh。",
+    "视觉门禁为独立验证——实际审查图来自同一套自定义CPU rasterizer，部分布尔门禁为人工写入。",
+    "门舱无穿模——实际仅使用最近车身顶点距离近似，不是真实三角面碰撞。",
+    "GitHub已托管正式模型——仓库中找不到状态文件列出的S2/S3 GLB交付物。"
+  ],
+  "next_actions": [
+    "更新统一正投影和轴距标注。",
+    "重新计算S1门窗、检修舱、轮拱和皮肤锚点。",
+    "在真实Blender环境建立并提交.blend母版。",
+    "重新执行S2/S3视觉、拓扑、碰撞和Three.js运行时验证。",
+    "S3重新通过后再恢复S4。"
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
-    "rule": "以大阶段确定方向；视觉门禁优先于尺寸和节点自动检查。仅在阶段启动、重大审查、阶段完成或重大阻塞时提交Git状态。",
     "bulk_upload": "PAUSED",
-    "stage_commits": "ENABLED"
+    "stage_commits": "ENABLED",
+    "audit_rule": "阶段通过必须区分真实文件存在、自动技术检查、独立视觉审查和外部运行时验证；不得用自写报告替代独立证据。"
   }
 }
