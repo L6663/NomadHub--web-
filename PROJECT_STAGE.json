@@ -2,27 +2,29 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T11:35:00+08:00",
+  "updated_at": "2026-08-02T11:57:00+08:00",
   "current_stage": {
+    "id": "S3",
+    "name": "结构精模与部件拆分",
+    "status": "IN_PROGRESS",
+    "progress_percent": 0,
+    "started_at": "2026-08-02T11:57:00+08:00",
+    "goal": "在S2 R19连续车身灰模基础上完成产品级结构精修与部件拆分，包括前脸、灯组、保险杠、窗框、密封胶条、车门、检修舱、轮拱唇边、侧裙、后视镜、车尾附件和车顶设备外形，同时保持S1 AMD-001冻结比例与现有真实开孔、轮心层级。",
+    "entry_basis": {
+      "s2_review": "R19_FINAL PASSED",
+      "base_asset": "NomadHub_RV_V1.7_S2_R19_Candidate.glb",
+      "s1_amendment": "NH-V1.7-S1-AMD-001"
+    },
+    "review_status": "NOT_REVIEWED"
+  },
+  "previous_stage": {
     "id": "S2",
     "name": "Blender连续车身灰模",
     "status": "PASSED",
     "progress_percent": 100,
-    "started_at": "2026-08-01T23:40:00+08:00",
-    "completed_at": "2026-08-02T11:35:00+08:00",
     "review_status": "PASSED",
     "review_round": "R19_FINAL",
-    "review_summary": "R19完成最终统一审查。车身采用单一连通灰模壳体，具备真实窗洞、独立玻璃、独立车门与检修舱面板、规范层级和四个真实轮心根节点；主车身外向法线100%，主体宽度2.349994m，完整长度8.990m，77个图元全部包含POSITION和NORMAL，三角面25,554。S2仅代表结构灰模通过，产品级外观细节进入S3。",
-    "deliverables": [
-      "NomadHub_RV_V1.7_S2_R19_Candidate.glb",
-      "S2_R19_12_View_Solid_Review.png",
-      "S2_R19_Closeup_Review.png",
-      "S2_R19_Wireframe_Review.png",
-      "docs/stages/S2/S2_R19_Final_Review.md",
-      "docs/stages/S2/S2_R19_Final_Audit.json"
-    ],
     "metrics": {
-      "file_size_mb": 0.568,
       "geometry_nodes": 77,
       "graph_nodes": 92,
       "vertices": 13250,
@@ -31,39 +33,31 @@
       "body_components": 1,
       "normal_coverage": "77/77 primitives",
       "body_outward_face_ratio": 1.0,
-      "body_inward_face_ratio": 0.0,
       "body_width_m": 2.349994,
       "full_scene_length_m": 8.99,
       "full_scene_height_m": 3.05
     }
   },
-  "previous_stage": {
-    "id": "S1",
-    "name": "工程参考规范统一",
-    "status": "PASSED",
-    "progress_percent": 100,
+  "frozen_reference": {
+    "s1_status": "PASSED",
     "amendment": "NH-V1.7-S1-AMD-001",
-    "amendment_path": "docs/stages/S1/S1_Amendment_01_Wheelbase.json",
-    "frozen_dimensions": {
-      "front_axle_x_m": -3.245,
-      "rear_axle_x_m": 1.905,
-      "wheelbase_m": 5.15,
-      "front_overhang_m": 1.25,
-      "rear_overhang_m": 2.59
-    }
+    "front_axle_x_m": -3.245,
+    "rear_axle_x_m": 1.905,
+    "wheelbase_m": 5.15,
+    "front_overhang_m": 1.25,
+    "rear_overhang_m": 2.59
   },
   "next_stage": {
-    "id": "S3",
-    "name": "结构精模与部件拆分",
-    "status": "READY",
-    "entry_condition": "S2 R19最终统一审查已通过；保持S1 AMD-001冻结比例，不得重新使用体素或方盒堆叠方式。"
+    "id": "S4",
+    "name": "UV展开与Nomad Silver皮肤",
+    "status": "BLOCKED_BY_S3"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
     {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100,"amendment":"AMD-001"},
     {"id":"S2","name":"Blender连续车身灰模","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R19_FINAL"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"READY","progress_percent":0},
-    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
+    {"id":"S3","name":"结构精模与部件拆分","status":"IN_PROGRESS","progress_percent":0},
+    {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"BLOCKED_BY_S3","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
     {"id":"S7","name":"Three.js正式接入","status":"NOT_STARTED","progress_percent":0},
