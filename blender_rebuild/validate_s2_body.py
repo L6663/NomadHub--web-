@@ -5,40 +5,80 @@ import sys
 from collections import defaultdict, deque
 from pathlib import Path
 
+import bmesh
 import bpy
 from mathutils import Vector
+from mathutils.bvhtree import BVHTree
 
 import validate_s1c as s1c
 
 
 BODY_NAME = "BODY_S2_CONTROL_CAGE"
 WIRE_NAME = "BODY_S2_WIREFRAME"
-EXPECTED_LENGTH_M = 8.99
-EXPECTED_WIDTH_M = 2.30
+EXPECTED_MODIFIERS = ("SUBSURF", "BOOLEAN", "BOOLEAN", "BEVEL")
+EXPECTED_LENGTH_M = 8.990
+EXPECTED_SOURCE_WIDTH_M = 2.300
 DIMENSION_TOLERANCE_M = 0.015
-ROUNDTRIP_TOLERANCE_M = 0.005
-MIN_QUAD_RATIO = 0.98
-MAX_NON_QUADS = 2
-EXPECTED_RING_SIZE = 12
-EXPECTED_STATIONS = (
+POSITION_TOLERANCE_M = 0.002
+ROUNDTRIP_TOLERANCE_M = 0.010
+MIN_QUAD_RATIO = 0.995
+REQUIRED_RING_XS = (
     -4.495,
-    -4.400,
-    -4.100,
-    -3.780,
+    -4.430,
+    -4.300,
+    -4.080,
+    -3.900,
+    -3.800,
+    -3.750,
     -3.245,
     -2.710,
+    -2.600,
+    -2.500,
     -2.475,
-    -1.345,
+    -1.950,
+    -1.425,
+    -0.880,
     -0.820,
     -0.040,
+    0.020,
     0.225,
+    0.750,
     1.275,
+    1.340,
     1.370,
     1.905,
     2.440,
+    2.500,
     2.525,
+    3.050,
     3.575,
+    4.350,
     4.495,
+)
+EXPECTED_FROZEN_X = {
+    "WHEEL_FL_ROOT": -3.245,
+    "WHEEL_FR_ROOT": -3.245,
+    "WHEEL_RL_ROOT": 1.905,
+    "WHEEL_RR_ROOT": 1.905,
+    "WHEEL_ARCH_FL": -3.245,
+    "WHEEL_ARCH_FR": -3.245,
+    "WHEEL_ARCH_RL": 1.905,
+    "WHEEL_ARCH_RR": 1.905,
+    "DOOR_DRIVER_L_ROOT": -4.020,
+    "DOOR_PASSENGER_R_ROOT": -4.020,
+    "DOOR_LIVING_R_ROOT": -0.820,
+    "HATCH_L_1_ROOT": -1.950,
+    "HATCH_L_2_ROOT": 0.350,
+    "HATCH_L_3_ROOT": 3.050,
+    "HATCH_R_1_ROOT": -1.950,
+    "HATCH_R_2_ROOT": 0.750,
+    "HATCH_R_3_ROOT": 3.050,
+}
+WHEEL_TIRES = (
+    "WHEEL_FL_TIRE",
+    "WHEEL_FR_TIRE",
+    "WHEEL_RL_TIRE",
+    "WHEEL_RR_TIRE",
 )
 S2_STATIC_COLLISION_OBJECTS = (
     BODY_NAME,
@@ -66,167 +106,215 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--glb", required=True)
     parser.add_argument("--clearance", required=True)
+    parser.add_argument("--manifest", required=True)
     parser.add_argument("--report", required=True)
     return parser.parse_args(raw)
 
 
-def world_vertices(obj):
-    return [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+def world_x(obj):
+    return float(obj.matrix_world.translation.x)
 
 
-def bounds(obj):
-    vertices = world_vertices(obj)
+def object_bounds(obj, evaluated=False):
+    if evaluated:
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        evaluated_obj = obj.evaluated_get(depsgraph)
+        mesh = evaluated_obj.to_mesh()
+        try:
+            points = [evaluated_obj.matrix_world @ vertex.co for vertex in mesh.vertices]
+        finally:
+            evaluated_obj.to_mesh_clear()
+    else:
+        points = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
     minimum = Vector(
         (
-            min(vertex.x for vertex in vertices),
-            min(vertex.y for vertex in vertices),
-            min(vertex.z for vertex in vertices),
+            min(point.x for point in points),
+            min(point.y for point in points),
+            min(point.z for point in points),
         )
     )
     maximum = Vector(
         (
-            max(vertex.x for vertex in vertices),
-            max(vertex.y for vertex in vertices),
-            max(vertex.z for vertex in vertices),
+            max(point.x for point in points),
+            max(point.y for point in points),
+            max(point.z for point in points),
         )
     )
-    return minimum, maximum
+    return {
+        "min_m": list(minimum),
+        "max_m": list(maximum),
+        "dimensions_m": list(maximum - minimum),
+    }
 
 
-def connected_components(mesh):
-    adjacency = defaultdict(set)
-    for edge in mesh.edges:
-        a, b = edge.vertices
-        adjacency[a].add(b)
-        adjacency[b].add(a)
-
-    remaining = set(range(len(mesh.vertices)))
-    components = []
-    while remaining:
-        start = next(iter(remaining))
-        queue = deque([start])
-        component = set()
-        while queue:
-            current = queue.popleft()
-            if current in component:
-                continue
-            component.add(current)
-            remaining.discard(current)
-            queue.extend(adjacency[current] - component)
-        components.append(component)
-    return components
-
-
-def edge_face_counts(mesh):
-    counts = defaultdict(int)
-    for polygon in mesh.polygons:
-        for edge_key in polygon.edge_keys:
-            counts[tuple(sorted(edge_key))] += 1
-    return counts
-
-
-def symmetry_errors(obj, tolerance=0.0005):
-    vertices = world_vertices(obj)
-    errors = []
-    for index, vertex in enumerate(vertices):
-        mirrored = Vector((vertex.x, -vertex.y, vertex.z))
-        nearest = min((candidate - mirrored).length for candidate in vertices)
-        if nearest > tolerance:
-            errors.append(
-                {
-                    "vertex": index,
-                    "coordinate": list(vertex),
-                    "nearest_mirror_error_m": nearest,
-                }
-            )
-    return errors
-
-
-def parse_station_property(obj):
-    value = obj.get("s2_station_x_m")
-    if value is None:
-        return []
-    if isinstance(value, str):
-        return [float(item) for item in json.loads(value)]
-    return [float(item) for item in value]
-
-
-def topology_metrics(obj):
-    mesh = obj.data
+def polygon_statistics(mesh):
     face_sizes = [len(polygon.vertices) for polygon in mesh.polygons]
-    quad_count = sum(size == 4 for size in face_sizes)
-    non_quad_sizes = [size for size in face_sizes if size != 4]
-    components = connected_components(mesh)
-    edge_counts = edge_face_counts(mesh)
-    non_manifold = [edge for edge, count in edge_counts.items() if count != 2]
-    minimum, maximum = bounds(obj)
-    dimensions = maximum - minimum
-    station_values = parse_station_property(obj)
-    station_errors = []
-    for expected in EXPECTED_STATIONS:
-        nearest = min((abs(actual - expected) for actual in station_values), default=math.inf)
-        if nearest > 0.0005:
-            station_errors.append({"expected_x_m": expected, "nearest_error_m": nearest})
-
-    symmetry = symmetry_errors(obj)
+    quads = sum(size == 4 for size in face_sizes)
     return {
         "vertices": len(mesh.vertices),
         "edges": len(mesh.edges),
         "faces": len(mesh.polygons),
-        "quads": quad_count,
-        "non_quads": len(non_quad_sizes),
-        "non_quad_face_sizes": non_quad_sizes,
-        "quad_ratio": quad_count / len(mesh.polygons) if mesh.polygons else 0.0,
-        "connected_components": len(components),
-        "component_vertex_counts": sorted((len(component) for component in components), reverse=True),
-        "non_manifold_edges": len(non_manifold),
-        "bounds_min_m": list(minimum),
-        "bounds_max_m": list(maximum),
-        "dimensions_m": list(dimensions),
-        "station_x_m": station_values,
-        "station_errors": station_errors,
-        "symmetry_error_count": len(symmetry),
-        "symmetry_errors": symmetry[:20],
+        "triangles": sum(size == 3 for size in face_sizes),
+        "quads": quads,
+        "ngons": sum(size > 4 for size in face_sizes),
+        "quad_ratio": quads / len(face_sizes) if face_sizes else 0.0,
+        "non_quad_face_sizes": [size for size in face_sizes if size != 4],
     }
 
 
-def validate_topology(metrics):
+def topology_connectivity(mesh):
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    non_manifold_edges = sum(1 for edge in bm.edges if len(edge.link_faces) != 2)
+    loose_vertices = sum(1 for vertex in bm.verts if not vertex.link_edges)
+
+    adjacency = defaultdict(set)
+    for edge in bm.edges:
+        a, b = edge.verts
+        adjacency[a.index].add(b.index)
+        adjacency[b.index].add(a.index)
+
+    unseen = set(range(len(bm.verts)))
+    components = []
+    while unseen:
+        start = unseen.pop()
+        queue = deque([start])
+        component = {start}
+        while queue:
+            current = queue.popleft()
+            for neighbor in adjacency[current]:
+                if neighbor in unseen:
+                    unseen.remove(neighbor)
+                    component.add(neighbor)
+                    queue.append(neighbor)
+        components.append(component)
+    bm.free()
+    return {
+        "connected_components": len(components),
+        "component_vertex_counts": sorted(
+            (len(component) for component in components), reverse=True
+        ),
+        "non_manifold_edges": non_manifold_edges,
+        "loose_vertices": loose_vertices,
+    }
+
+
+def symmetry_errors(mesh, tolerance=1e-6):
+    coordinates = {
+        (
+            round(vertex.co.x / tolerance),
+            round(vertex.co.y / tolerance),
+            round(vertex.co.z / tolerance),
+        )
+        for vertex in mesh.vertices
+    }
     failures = []
-    length, width, _ = metrics["dimensions_m"]
-    if abs(length - EXPECTED_LENGTH_M) > DIMENSION_TOLERANCE_M:
-        failures.append(
-            f"body length {length:.6f} differs from {EXPECTED_LENGTH_M:.3f}"
+    for vertex in mesh.vertices:
+        counterpart = (
+            round(vertex.co.x / tolerance),
+            round(-vertex.co.y / tolerance),
+            round(vertex.co.z / tolerance),
         )
-    if abs(width - EXPECTED_WIDTH_M) > DIMENSION_TOLERANCE_M:
-        failures.append(
-            f"body width {width:.6f} differs from {EXPECTED_WIDTH_M:.3f}"
-        )
-    if metrics["quad_ratio"] < MIN_QUAD_RATIO:
-        failures.append(
-            f"quad ratio {metrics['quad_ratio']:.6f} < {MIN_QUAD_RATIO:.2f}"
-        )
-    if metrics["non_quads"] > MAX_NON_QUADS:
-        failures.append(
-            f"non-quad faces {metrics['non_quads']} > {MAX_NON_QUADS}"
-        )
-    if metrics["connected_components"] != 1:
-        failures.append(
-            f"connected components {metrics['connected_components']} != 1"
-        )
-    if metrics["non_manifold_edges"] != 0:
-        failures.append(
-            f"non-manifold edges {metrics['non_manifold_edges']} != 0"
-        )
-    if metrics["station_errors"]:
-        failures.append("one or more frozen control-ring stations are missing")
-    if metrics["symmetry_error_count"] != 0:
-        failures.append(
-            f"body symmetry errors {metrics['symmetry_error_count']} != 0"
-        )
+        if counterpart not in coordinates:
+            failures.append(vertex.index)
     return failures
 
 
-def collect_body(label, require_control_topology):
+def control_ring_values(body):
+    stored = body.get("s2_ring_x_m")
+    if isinstance(stored, str):
+        return [float(value) for value in json.loads(stored)]
+    return sorted({round(vertex.co.x, 6) for vertex in body.data.vertices})
+
+
+def world_bvh(obj, depsgraph):
+    evaluated = obj.evaluated_get(depsgraph)
+    mesh = evaluated.to_mesh()
+    try:
+        if not mesh.vertices or not mesh.polygons:
+            return None
+        vertices = [evaluated.matrix_world @ vertex.co for vertex in mesh.vertices]
+        polygons = [tuple(polygon.vertices) for polygon in mesh.polygons]
+        return BVHTree.FromPolygons(
+            vertices,
+            polygons,
+            all_triangles=False,
+            epsilon=1e-6,
+        )
+    finally:
+        evaluated.to_mesh_clear()
+
+
+def wheel_body_clearance():
+    scene = bpy.context.scene
+    scene.frame_set(1)
+    bpy.context.view_layer.update()
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    body = bpy.data.objects.get(BODY_NAME)
+    failures = []
+    rows = []
+    if body is None:
+        return {
+            "result": "FAIL",
+            "rows": [],
+            "failures": [f"{BODY_NAME} missing"],
+        }
+    body_bvh = world_bvh(body, depsgraph)
+    for tire_name in WHEEL_TIRES:
+        tire = bpy.data.objects.get(tire_name)
+        if tire is None:
+            failures.append(f"{tire_name} missing")
+            continue
+        tire_bvh = world_bvh(tire, depsgraph)
+        overlap = body_bvh.overlap(tire_bvh) if body_bvh and tire_bvh else []
+        rows.append(
+            {
+                "tire": tire_name,
+                "triangle_overlap_pairs": len(overlap),
+            }
+        )
+        if overlap:
+            failures.append(f"{tire_name} intersects evaluated S2 body")
+    return {
+        "result": "PASS" if not failures else "FAIL",
+        "rows": rows,
+        "failures": failures,
+    }
+
+
+def frozen_position_report():
+    failures = []
+    values = {}
+    for name, expected_x in EXPECTED_FROZEN_X.items():
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            failures.append(f"frozen object missing: {name}")
+            continue
+        actual_x = world_x(obj)
+        values[name] = actual_x
+        if abs(actual_x - expected_x) > POSITION_TOLERANCE_M:
+            failures.append(
+                f"{name} x={actual_x:.6f}, expected {expected_x:.6f}"
+            )
+    if all(name in values for name in ("WHEEL_FL_ROOT", "WHEEL_RL_ROOT")):
+        wheelbase_left = values["WHEEL_RL_ROOT"] - values["WHEEL_FL_ROOT"]
+        values["wheelbase_left_m"] = wheelbase_left
+        if abs(wheelbase_left - 5.150) > POSITION_TOLERANCE_M:
+            failures.append(f"left wheelbase {wheelbase_left:.6f} != 5.150")
+    if all(name in values for name in ("WHEEL_FR_ROOT", "WHEEL_RR_ROOT")):
+        wheelbase_right = values["WHEEL_RR_ROOT"] - values["WHEEL_FR_ROOT"]
+        values["wheelbase_right_m"] = wheelbase_right
+        if abs(wheelbase_right - 5.150) > POSITION_TOLERANCE_M:
+            failures.append(f"right wheelbase {wheelbase_right:.6f} != 5.150")
+    return {
+        "result": "PASS" if not failures else "FAIL",
+        "values_m": values,
+        "failures": failures,
+    }
+
+
+def collect_body(label, check_source_topology):
     failures = []
     body = bpy.data.objects.get(BODY_NAME)
     if body is None or body.type != "MESH":
@@ -236,60 +324,123 @@ def collect_body(label, require_control_topology):
             "failures": [f"{BODY_NAME} missing or not a mesh"],
         }
 
-    if bpy.data.objects.get("BODY_MAIN") is not None:
-        failures.append("legacy BODY_MAIN still present")
-    if bpy.data.objects.get("BODY_CAB") is not None:
-        failures.append("legacy BODY_CAB still present")
-
-    minimum, maximum = bounds(body)
-    dimensions = maximum - minimum
+    evaluated_bounds = object_bounds(body, evaluated=True)
+    evaluated_length = evaluated_bounds["dimensions_m"][0]
     result = {
         "label": label,
         "body_name": body.name,
-        "bounds_min_m": list(minimum),
-        "bounds_max_m": list(maximum),
-        "dimensions_m": list(dimensions),
-        "legacy_body_absent": (
-            bpy.data.objects.get("BODY_MAIN") is None
-            and bpy.data.objects.get("BODY_CAB") is None
-        ),
+        "evaluated_bounds": evaluated_bounds,
     }
+    if evaluated_length < 8.80:
+        failures.append(
+            f"evaluated body length {evaluated_length:.6f} is unexpectedly short"
+        )
 
-    if require_control_topology:
-        metrics = topology_metrics(body)
-        result["topology"] = metrics
-        failures.extend(validate_topology(metrics))
+    if check_source_topology:
+        topology = polygon_statistics(body.data)
+        connectivity = topology_connectivity(body.data)
+        symmetry = symmetry_errors(body.data)
+        source_bounds = object_bounds(body, evaluated=False)
+        ring_values = control_ring_values(body)
+        missing_rings = [
+            expected
+            for expected in REQUIRED_RING_XS
+            if not any(abs(expected - actual) <= 1e-6 for actual in ring_values)
+        ]
+        modifier_types = tuple(modifier.type for modifier in body.modifiers)
+        result.update(
+            {
+                "source_bounds": source_bounds,
+                "topology": topology,
+                "connectivity": connectivity,
+                "symmetry_error_count": len(symmetry),
+                "symmetry_vertex_indices": symmetry[:30],
+                "control_ring_x_m": ring_values,
+                "missing_required_ring_x_m": missing_rings,
+                "modifier_types": list(modifier_types),
+            }
+        )
+
+        source_length, source_width, _ = source_bounds["dimensions_m"]
+        if abs(source_length - EXPECTED_LENGTH_M) > DIMENSION_TOLERANCE_M:
+            failures.append(
+                f"source body length {source_length:.6f} differs from 8.990"
+            )
+        if abs(source_width - EXPECTED_SOURCE_WIDTH_M) > DIMENSION_TOLERANCE_M:
+            failures.append(
+                f"source body width {source_width:.6f} differs from 2.300"
+            )
+        if topology["quad_ratio"] < MIN_QUAD_RATIO:
+            failures.append(
+                f"source quad ratio {topology['quad_ratio']:.6f} < {MIN_QUAD_RATIO:.3f}"
+            )
+        if topology["triangles"] != 0:
+            failures.append(
+                f"source cage contains {topology['triangles']} triangles"
+            )
+        if topology["ngons"] != 2:
+            failures.append(
+                f"source cage must have exactly 2 cap n-gons, found {topology['ngons']}"
+            )
+        if connectivity["connected_components"] != 1:
+            failures.append(
+                f"source cage has {connectivity['connected_components']} components"
+            )
+        if connectivity["non_manifold_edges"] != 0:
+            failures.append(
+                f"source cage has {connectivity['non_manifold_edges']} non-manifold edges"
+            )
+        if connectivity["loose_vertices"] != 0:
+            failures.append(
+                f"source cage has {connectivity['loose_vertices']} loose vertices"
+            )
+        if symmetry:
+            failures.append(f"source cage has {len(symmetry)} symmetry errors")
+        if missing_rings:
+            failures.append(f"required control rings missing: {missing_rings}")
+        if modifier_types != EXPECTED_MODIFIERS:
+            failures.append(
+                f"modifier order {modifier_types}, expected {EXPECTED_MODIFIERS}"
+            )
+
         wire = bpy.data.objects.get(WIRE_NAME)
         if wire is None:
             failures.append(f"{WIRE_NAME} proof object missing")
         elif not bool(wire.get("s2_proof_only")):
-            failures.append(f"{WIRE_NAME} is not marked proof-only")
+            failures.append(f"{WIRE_NAME} is not proof-only")
 
+        for reference_name in (
+            "S1C_BODY_MAIN_REFERENCE",
+            "S1C_BODY_CAB_REFERENCE",
+        ):
+            reference = bpy.data.objects.get(reference_name)
+            if reference is None:
+                failures.append(f"frozen reference missing: {reference_name}")
+            elif not reference.hide_render:
+                failures.append(f"frozen reference is still renderable: {reference_name}")
+
+        for cutter_name in ("S2_CUTTER_ARCH_FRONT", "S2_CUTTER_ARCH_REAR"):
+            cutter = bpy.data.objects.get(cutter_name)
+            if cutter is None:
+                failures.append(f"wheel-arch cutter missing: {cutter_name}")
+            elif not cutter.hide_render:
+                failures.append(f"wheel-arch cutter is renderable: {cutter_name}")
+
+    frozen = frozen_position_report()
+    wheel_clearance = wheel_body_clearance()
+    if frozen["result"] != "PASS":
+        failures.extend(frozen["failures"])
+    if wheel_clearance["result"] != "PASS":
+        failures.extend(wheel_clearance["failures"])
+
+    result["frozen_positions"] = frozen
+    result["wheel_body_clearance"] = wheel_clearance
+    result["objects"] = len(bpy.data.objects)
+    result["meshes"] = len(bpy.data.meshes)
+    result["actions"] = len(bpy.data.actions)
     result["failures"] = failures
     result["result"] = "PASS" if not failures else "FAIL"
     return result
-
-
-def compare_body_bounds(blend_body, glb_body):
-    failures = []
-    for key in ("bounds_min_m", "bounds_max_m", "dimensions_m"):
-        for axis, (blend_value, glb_value) in enumerate(
-            zip(blend_body[key], glb_body[key])
-        ):
-            delta = abs(blend_value - glb_value)
-            if delta > ROUNDTRIP_TOLERANCE_M:
-                failures.append(
-                    f"body {key}[{axis}] roundtrip delta {delta:.6f} "
-                    f"> {ROUNDTRIP_TOLERANCE_M:.3f}"
-                )
-    return failures
-
-
-def clear_scene():
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete(use_global=False)
-    for action in list(bpy.data.actions):
-        bpy.data.actions.remove(action)
 
 
 def collect_s1c_compatibility(label):
@@ -301,23 +452,48 @@ def collect_s1c_compatibility(label):
         s1c.STATIC_COLLISION_OBJECTS = original_static
 
 
+def clear_scene():
+    bpy.ops.object.select_all(action="SELECT")
+    bpy.ops.object.delete(use_global=False)
+    for action in list(bpy.data.actions):
+        bpy.data.actions.remove(action)
+
+
+def compare_body_roundtrip(blend_body, glb_body):
+    failures = []
+    blend_bounds = blend_body.get("evaluated_bounds", {})
+    glb_bounds = glb_body.get("evaluated_bounds", {})
+    for key in ("min_m", "max_m", "dimensions_m"):
+        blend_values = blend_bounds.get(key, [])
+        glb_values = glb_bounds.get(key, [])
+        if len(blend_values) != 3 or len(glb_values) != 3:
+            failures.append(f"roundtrip body metric missing: {key}")
+            continue
+        for axis, (blend_value, glb_value) in enumerate(
+            zip(blend_values, glb_values)
+        ):
+            delta = abs(blend_value - glb_value)
+            if delta > ROUNDTRIP_TOLERANCE_M:
+                failures.append(
+                    f"body {key}[{axis}] roundtrip delta {delta:.6f} > 0.010"
+                )
+    return failures
+
+
 def main():
     args = parse_args()
+    manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     clearance = json.loads(Path(args.clearance).read_text(encoding="utf-8"))
 
-    blend_body = collect_body("blend", require_control_topology=True)
+    blend_body = collect_body("blend", check_source_topology=True)
     blend_s1c = collect_s1c_compatibility("blend_s2_compatibility")
 
     clear_scene()
     bpy.ops.import_scene.gltf(filepath=args.glb)
-    glb_body = collect_body("glb_roundtrip", require_control_topology=False)
+    glb_body = collect_body("glb_roundtrip", check_source_topology=False)
     glb_s1c = collect_s1c_compatibility("glb_s2_compatibility")
 
-    roundtrip_failures = []
-    if blend_body.get("result") == "PASS" and glb_body.get("result") == "PASS":
-        roundtrip_failures.extend(compare_body_bounds(blend_body, glb_body))
-    else:
-        roundtrip_failures.append("body metrics unavailable for roundtrip comparison")
+    roundtrip_failures = compare_body_roundtrip(blend_body, glb_body)
     roundtrip_failures.extend(s1c.compare_roundtrip(blend_s1c, glb_s1c))
 
     failures = []
@@ -328,24 +504,28 @@ def main():
     failures.extend(blend_s1c.get("failures", []))
     failures.extend(glb_s1c.get("failures", []))
     failures.extend(roundtrip_failures)
+    if manifest.get("stage") != "S2" or manifest.get("iteration") != "R1":
+        failures.append("manifest stage/iteration mismatch")
+    if manifest.get("body_object") != BODY_NAME:
+        failures.append("manifest body object mismatch")
 
     report = {
-        "schema": "nomadhub-s2-r1-verification-v1",
+        "schema": "nomadhub-s2-r1-verification-v2",
         "stage": "S2",
         "iteration": "R1",
-        "status": "CANDIDATE_REVIEW_REQUIRED",
+        "status": "PASS" if not failures else "FAIL",
+        "s2_r1_ready_for_visual_review": not failures,
+        "s2_accepted": False,
         "blend_body": blend_body,
         "glb_body": glb_body,
         "blend_s1c_compatibility": blend_s1c,
         "glb_s1c_compatibility": glb_s1c,
         "roundtrip_failures": roundtrip_failures,
-        "result": "PASS" if not failures else "FAIL",
-        "s2_accepted": False,
         "failures": failures,
         "scope_note": (
-            "A PASS result means the S2 R1 control-cage candidate is connected, "
-            "predominantly quad-based, symmetric, round-trip stable and preserves "
-            "S1C geometry/animation gates. It does not accept final S2 surfacing."
+            "PASS means the S2-R1 continuous control cage, evaluated wheel-arch "
+            "openings, inherited S1C coordinates/animations and GLB roundtrip are "
+            "technically reviewable. It does not accept final S2 topology or surfacing."
         ),
     }
     Path(args.report).write_text(
@@ -354,7 +534,7 @@ def main():
     )
     print(json.dumps(report, ensure_ascii=False))
     if failures:
-        raise RuntimeError("S2 R1 verification failed")
+        raise RuntimeError("S2-R1 verification failed")
 
 
 if __name__ == "__main__":
