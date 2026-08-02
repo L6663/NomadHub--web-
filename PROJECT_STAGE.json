@@ -1,14 +1,16 @@
 {
   "project": "NomadHub General3",
   "version": "V1.7",
-  "branch": "main",
-  "updated_at": "2026-08-02T16:10:00+08:00",
+  "branch": "fix/s1c-geometry-gates",
+  "updated_at": "2026-08-02T17:54:00+08:00",
   "current_stage": {
-    "id": "BLENDER_NATIVE_REBUILD",
-    "name": "真实Blender母版重建与上游整改",
-    "status": "BASELINE_VERIFIED",
-    "summary": "已使用官方Blender 4.2.0在GitHub Actions中原生创建、保存、重新打开并导出可编辑.blend工程。该成果解决了此前没有可核验Blender源工程的问题，但仍是Blender原生基线，不等于产品级拓扑或S2/S3重新验收通过。",
-    "verification_path": "docs/audits/REAL_BLEND_REBUILD_VERIFICATION.md"
+    "id": "S1C_ACCEPTED",
+    "name": "S1轴距、轮拱与检修舱结构闭环",
+    "status": "PASS",
+    "summary": "S1C已通过真实Blender 4.2构建、母版与GLB回导坐标验证、静态净距门禁、逐门逐舱动画选择、9帧动态三角面碰撞扫掠、门玻璃父子层级与同步动画验证，以及完整六视图人工复核。S2现可开始，但尚未完成。",
+    "verification_path": "build/output/S1C_VERIFICATION_REPORT.json",
+    "next_stage": "S2",
+    "next_stage_status": "READY_TO_START"
   },
   "corrected_stage_status": {
     "S0": {
@@ -17,63 +19,128 @@
       "note": "保留为视觉概念，不作为CAD工程正投影。"
     },
     "S1": {
-      "name": "工程参考规范统一",
-      "status": "REWORK_REQUIRED",
-      "note": "需按5.150m轴距重新闭环轮拱、检修舱、车窗和皮肤锚点。"
+      "name": "工程参考规范统一与结构闭环",
+      "status": "ACCEPTED",
+      "note": "轴距5.150m；前轴X=-3.245m；后轴X=1.905m；四轮拱、左右独立检修舱坐标、门舱动画和GLB同步动画均已通过自动与视觉验收。"
     },
     "S2": {
       "name": "连续车身灰模",
-      "status": "BLENDER_BASELINE_CREATED_REVIEW_REQUIRED",
-      "note": "真实.blend母版已经生成并可重新打开；当前几何仍是Blender原生基线，尚未完成产品级曲面和手工重拓扑。"
+      "status": "READY_TO_START",
+      "note": "以S1C_ACCEPTED母版为冻结输入，开始连续车身控制笼、四边面拓扑和门窗轮拱控制环重建；不得移动已冻结的轴位、轮拱中心、门舱位置和铰链轴。"
     },
     "S3": {
       "name": "结构精模与部件拆分",
-      "status": "NOT_REACCEPTED",
-      "note": "已有门、舱、轮组和动画层级，但必须在真实Blender母版上继续精修并重新验收。"
+      "status": "BLOCKED_BY_S2",
+      "note": "已有可编辑门、舱、轮组和动画层级，但需在连续车身S2重新通过后继续精模。"
     },
     "S4": {
       "name": "UV展开与Nomad Silver皮肤",
       "status": "PAUSED_BY_AUDIT",
-      "note": "在S1重新闭环且S2/S3重新通过前，不开始正式UV。"
+      "note": "在S2/S3重新通过前不开始正式UV与产品级材质。"
     }
   },
-  "verified_blender_artifact": {
+  "s1c_accepted_artifact": {
     "workflow": "Build Genuine Blender Project",
-    "workflow_run_id": 30739094276,
-    "workflow_run_number": 7,
+    "workflow_run_id": 30742311026,
+    "workflow_run_number": 23,
     "workflow_conclusion": "success",
-    "artifact_id": 8830670607,
-    "artifact_name": "NomadHub-General3-V1.7-REAL-BLEND",
-    "artifact_digest": "sha256:6f39daceae542aa8f83ddfff9eddc852da0c1ad72712530a7740fd33b37acecb",
-    "artifact_expires_at": "2026-08-16T08:07:40Z",
-    "generator_commit": "9c35d47594659b919201b0640b1bc4e50f31fcaa",
-    "merged_commit": "9759854d533dd14832b13c13fb57ed99523e7c9a",
+    "generator_commit": "a1e747bf9c94b9c514460c4670f8a26693c62622",
+    "artifact_id": 8831753098,
+    "artifact_name": "NomadHub-General3-V1.7-S1C-ACCEPTED",
+    "artifact_digest": "sha256:54d11e5b11e13b68139e3609ed85877c183a88da61432dfe3a8f39c1ea9e6681",
+    "artifact_expires_at": "2026-08-16T09:48:32Z",
     "blender_version": "4.2.0",
-    "blend_file": "NomadHub_General3_V1.7_REAL.blend",
-    "blend_bytes": 135245,
-    "blend_sha256": "3fbc91023fbd1a3ca03f513a086fdfb405a4e00a1a2892223fab0a2e4ee9f46d",
-    "roundtrip_glb": "NomadHub_General3_V1.7_BlenderRoundtrip.glb",
-    "roundtrip_glb_sha256": "aefc4241b96470f17db4976171add1723af88c6adf87a7dad7338d5100caf1e9",
-    "objects": 78,
-    "meshes": 50,
+    "blend_file": "NomadHub_General3_V1.7_S1C.blend",
+    "blend_bytes": 147258,
+    "blend_sha256": "2fee84ff321df60a62e88729d734cada6f0b6eddb558139e0977dffe2147285a",
+    "roundtrip_glb": "NomadHub_General3_V1.7_S1C_Roundtrip.glb",
+    "roundtrip_glb_sha256": "2b738568546f7af653c7d23b58d5f0e34e86294029475043889a4dde9ef0e0af",
+    "verification_schema": "nomadhub-s1c-roundtrip-verification-v3",
+    "verification_sha256": "07b5e979b5abcd02c523312dd8aead5e0dbff73cc47ff3516a987c97858d054c",
+    "clearance_sha256": "a74b357f40bb5f5418755df61b7fdd59b25266440f99725146b4c007a45b51cb",
+    "objects": 86,
+    "meshes": 58,
     "materials": 7,
     "blender_actions": 13,
-    "roundtrip_glb_animations": 13,
     "units": "meters",
-    "verified_by": [
-      "Blender 4.2原生保存",
-      "Blender重新打开.blend并检查RV_ROOT、动作和单位",
-      "SHA-256与构建清单匹配",
-      "Blender回导GLB包含13个动画"
+    "geometry": {
+      "wheelbase_m": 5.15,
+      "front_axle_x_m": -3.245,
+      "rear_axle_x_m": 1.905,
+      "minimum_wheel_arch_clearance_m": 0.08,
+      "minimum_door_seam_clearance_m": 0.06,
+      "service_hatch_centers_x_m": {
+        "HATCH_L_1": -1.95,
+        "HATCH_L_2": 0.35,
+        "HATCH_L_3": 3.05,
+        "HATCH_R_1": -1.95,
+        "HATCH_R_2": 0.75,
+        "HATCH_R_3": 3.05
+      }
+    },
+    "measured_clearances_m": {
+      "HATCH_L_1_wheel_arch": 0.235,
+      "HATCH_L_2_wheel_arch": 0.495,
+      "HATCH_L_3_wheel_arch": 0.085,
+      "HATCH_R_1_wheel_arch": 0.235,
+      "HATCH_R_2_wheel_arch": 0.095,
+      "HATCH_R_3_wheel_arch": 0.085,
+      "minimum_door_seam": 0.265
+    },
+    "dynamic_validation": {
+      "sample_frames": [1, 12, 24, 36, 48, 60, 72, 84, 96],
+      "moving_roots_verified": 9,
+      "blend_checked_pairs": 2592,
+      "blend_collisions": 0,
+      "glb_checked_pairs": 2592,
+      "glb_collisions": 0,
+      "door_glass_blend_checked_pairs": 486,
+      "door_glass_blend_collisions": 0,
+      "door_glass_glb_checked_pairs": 486,
+      "door_glass_glb_collisions": 0,
+      "total_triangle_pair_checks": 6156,
+      "failures": 0
+    },
+    "door_glass_hierarchy": {
+      "DOOR_DRIVER_L_GLASS": "DOOR_DRIVER_L_ROOT",
+      "DOOR_PASSENGER_R_GLASS": "DOOR_PASSENGER_R_ROOT",
+      "DOOR_LIVING_R_GLASS": "DOOR_LIVING_R_ROOT"
+    },
+    "door_glass_roundtrip_translation_m": {
+      "DOOR_DRIVER_L_GLASS": 0.2942011027581911,
+      "DOOR_PASSENGER_R_GLASS": 0.2942011027581911,
+      "DOOR_LIVING_R_GLASS": 0.5144105900912246
+    },
+    "visual_evidence": [
+      "NomadHub_General3_V1.7_S1C_Preview.png",
+      "S1C_Left_Orthographic.png",
+      "S1C_Right_Orthographic.png",
+      "S1C_Top_Orthographic.png",
+      "S1C_Left_Open.png",
+      "S1C_Right_Open.png"
     ],
-    "scope_limit": "该工程是真实可编辑Blender基线，但尚未达到手工重拓扑、A级曲面或最终产品级房车资产标准。"
+    "scope_limit": "本验收只证明S1C坐标、净距、层级、动画和回导可靠。当前车身仍是可编辑结构灰模，不代表S2连续车身、手工四边面重拓扑、A级曲面、正式UV或产品级材质已经完成。"
   },
+  "s2_frozen_inputs": [
+    "overall_length_8.990m",
+    "overall_width_2.350m",
+    "overall_height_3.050m",
+    "wheelbase_5.150m",
+    "front_axle_x_-3.245m",
+    "rear_axle_x_1.905m",
+    "four_wheel_centers",
+    "four_wheel_arch_centers",
+    "three_main_door_locations",
+    "six_service_hatch_locations",
+    "door_and_hatch_hinge_axes",
+    "door_glass_parent_hierarchy"
+  ],
   "next_actions": [
-    "在真实Blender工程中重做S1冲突闭环。",
-    "重拓扑车身、驾驶舱、A柱、轮拱和门舱区域。",
-    "用Blender正投影和Eevee视图重新执行S2视觉验收。",
-    "在同一.blend中继续S3部件精修与动画碰撞验证。",
-    "S2/S3重新通过后恢复S4。"
+    "从NomadHub_General3_V1.7_S1C.blend复制建立独立S2工作母版，保留S1C_ACCEPTED文件只读。",
+    "重建单一连续车身控制笼，消除BODY_MAIN与BODY_CAB的箱体拼接逻辑。",
+    "围绕挡风玻璃、A柱、门窗、四轮拱、检修舱和前后围建立可细化的四边面拓扑流。",
+    "保持S1C冻结坐标不变，并在S2继续运行回导和动态碰撞门禁。",
+    "S2通过前不进入正式UV和产品级材质。"
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
