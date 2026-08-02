@@ -2,8 +2,7 @@ name: Build Genuine Blender Project
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
       - "blender_rebuild/**"
       - ".github/workflows/build-real-blend.yml"
@@ -16,44 +15,15 @@ jobs:
   build-blend:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-
     steps:
       - name: Checkout source branch
         uses: actions/checkout@v4
-
-      - name: Install generator dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install numpy trimesh shapely pillow networkx
-
-      - name: Reconstruct generator archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p build/output
-          cat blender_rebuild/generator_archive/part_*.b64 | base64 --decode > generators.tar.gz
-          sha256sum generators.tar.gz
-          gzip -t generators.tar.gz
-          tar -xzf generators.tar.gz -C blender_rebuild
-          find blender_rebuild/generators -maxdepth 1 -type f -print
-
-      - name: Regenerate S2 and S3 source GLB
-        shell: bash
-        run: |
-          set -euo pipefail
-          python blender_rebuild/generators/generate_s2_r19.py
-          python blender_rebuild/generators/generate_s3_r1.py
-          python blender_rebuild/generators/generate_s3_r2.py
-          python blender_rebuild/generators/generate_s3_r3.py
-          test -s build/stages/S3_R3/NomadHub_RV_V1.7_S3_R3_FinalCandidate.glb
-          sha256sum build/stages/S3_R3/NomadHub_RV_V1.7_S3_R3_FinalCandidate.glb
 
       - name: Download Blender 4.2 LTS
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p build/output
           curl --fail --location --retry 4 \
             "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
             --output blender.tar.xz
@@ -61,7 +31,7 @@ jobs:
           tar -xf blender.tar.xz
           ./blender-4.2.0-linux-x64/blender --version
 
-      - name: Build real .blend with Blender
+      - name: Build Blender-native editable project
         shell: bash
         run: |
           set -euo pipefail
@@ -69,10 +39,10 @@ jobs:
             --background \
             --python blender_rebuild/build_real_blend.py \
             -- \
-            --input build/stages/S3_R3/NomadHub_RV_V1.7_S3_R3_FinalCandidate.glb \
             --output build/output/NomadHub_General3_V1.7_REAL.blend \
             --roundtrip build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb \
-            --manifest build/output/BLENDER_BUILD_MANIFEST.json
+            --manifest build/output/BLENDER_BUILD_MANIFEST.json \
+            --preview build/output/NomadHub_General3_V1.7_BlenderPreview.png
 
       - name: Validate generated artifacts
         shell: bash
@@ -80,8 +50,10 @@ jobs:
           set -euo pipefail
           test -s build/output/NomadHub_General3_V1.7_REAL.blend
           test -s build/output/NomadHub_General3_V1.7_BlenderRoundtrip.glb
+          test -s build/output/NomadHub_General3_V1.7_BlenderPreview.png
           test -s build/output/BLENDER_BUILD_MANIFEST.json
           head -c 7 build/output/NomadHub_General3_V1.7_REAL.blend | grep -q BLENDER
+          grep -q 'genuine_blender_native_project' build/output/BLENDER_BUILD_MANIFEST.json
           sha256sum build/output/* > build/output/SHA256SUMS.txt
           cat build/output/BLENDER_BUILD_MANIFEST.json
 
