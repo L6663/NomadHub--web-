@@ -42,6 +42,11 @@ def parse_args():
     parser.add_argument("--roundtrip", required=True)
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--preview", required=True)
+    parser.add_argument(
+        "--skip-proofs",
+        action="store_true",
+        help="Skip S1C proof renders when rebuilding S1C only as an upstream source.",
+    )
     return parser.parse_args(raw)
 
 
@@ -152,16 +157,18 @@ def main():
     }
 
     scene["s1c_door_glass_hierarchy"] = "FINALIZED"
+    scene["s1c_proof_render_mode"] = "SKIPPED_FOR_UPSTREAM_SOURCE" if args.skip_proofs else "FULL"
     scene.frame_set(1)
     bpy.ops.wm.save_as_mainfile(filepath=args.blend, compress=True)
 
-    render_proof(scene, camera, proof_images["perspective_closed"], (-11, -10, 7.2), (0, 0, 1.35), 1)
-    render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 10.5)
-    render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 10.5)
-    render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 10.5)
-    render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 10.5)
-    render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 10.5)
-    scene.frame_set(1)
+    if not args.skip_proofs:
+        render_proof(scene, camera, proof_images["perspective_closed"], (-11, -10, 7.2), (0, 0, 1.35), 1)
+        render_proof(scene, camera, proof_images["left_orthographic"], (0, -14, 1.55), (0, 0, 1.45), 1, 10.5)
+        render_proof(scene, camera, proof_images["right_orthographic"], (0, 14, 1.55), (0, 0, 1.45), 1, 10.5)
+        render_proof(scene, camera, proof_images["top_orthographic"], (0, 0, 14), (0, 0, 0), 1, 10.5)
+        render_proof(scene, camera, proof_images["left_open"], (0, -14, 1.55), (0, 0, 1.45), 48, 10.5)
+        render_proof(scene, camera, proof_images["right_open"], (0, 14, 1.55), (0, 0, 1.45), 48, 10.5)
+        scene.frame_set(1)
 
     animation_mode = active_actions_merged_mode()
     bpy.ops.export_scene.gltf(
@@ -186,7 +193,12 @@ def main():
             "meshes": len(bpy.data.meshes),
             "materials": len(bpy.data.materials),
             "actions": len(bpy.data.actions),
-            "proof_images": {name: str(path) for name, path in proof_images.items()},
+            "proof_images": (
+                {name: str(path) for name, path in proof_images.items()}
+                if not args.skip_proofs
+                else {}
+            ),
+            "proof_render_mode": "SKIPPED_FOR_UPSTREAM_SOURCE" if args.skip_proofs else "FULL",
             "door_glass_hierarchy": {
                 name: parent_name for name, parent_name, _, _ in DOOR_GLASS
             },
@@ -202,6 +214,7 @@ def main():
     print("NOMADHUB_S1C_HIERARCHY_FINALIZED")
     print(json.dumps(manifest["door_glass_hierarchy"], ensure_ascii=False))
     print(f"GLB_ANIMATION_EXPORT_MODE={animation_mode}")
+    print(f"S1C_PROOF_RENDER_MODE={manifest['proof_render_mode']}")
 
 
 if __name__ == "__main__":
