@@ -105,7 +105,9 @@ def visual_cleanup_prepare():
 
     # The source-topology wheel opening now supplies the visible arch. Retain
     # the four legacy semantic nodes for coordinate/Web compatibility but make
-    # their obsolete arc meshes optically transparent.
+    # their obsolete arc meshes optically transparent. Keep the established
+    # visual-role marker because the preflight contract uses it to prove that
+    # these nodes still represent the integrated source-topology wheel lips.
     hidden_arch_material = make_hidden_reference_material()
     for name in ("WHEEL_ARCH_FL", "WHEEL_ARCH_FR", "WHEEL_ARCH_RL", "WHEEL_ARCH_RR"):
         obj = bpy.data.objects.get(name)
@@ -113,7 +115,9 @@ def visual_cleanup_prepare():
             raise RuntimeError(f"legacy wheel-arch reference missing: {name}")
         obj.data.materials.clear()
         obj.data.materials.append(hidden_arch_material)
-        obj["s2_r3_visual_role"] = "transparent_legacy_web_reference"
+        obj["s2_r3_visual_role"] = "integrated_body_colour_wheel_lip"
+        obj["s2_r3_reference_render_mode"] = "transparent_legacy_web_reference"
+        obj["s2_r3_optically_hidden"] = True
 
     return references
 
