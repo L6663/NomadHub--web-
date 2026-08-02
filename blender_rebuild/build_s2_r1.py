@@ -23,9 +23,19 @@ core = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(core)
 
 ORIGINAL_BUILD_CONTROL_CAGE = core.build_control_cage
-WINDSHIELD_Y = (-0.96, -0.48, 0.0, 0.48, 0.96)
-WINDSHIELD_Z = (1.70, 1.92, 2.14, 2.36, 2.58)
-SURFACE_OFFSET_M = 0.012
+COLUMN_COUNT = 9
+# Each row stores Z and its half width. Narrower first/last rows keep the panel
+# away from the highest-curvature cab corners and form a controlled trapezoid.
+WINDSHIELD_ROW_SPECS = (
+    (1.78, 0.80),
+    (1.90, 0.86),
+    (2.02, 0.89),
+    (2.14, 0.90),
+    (2.26, 0.89),
+    (2.38, 0.85),
+    (2.50, 0.78),
+)
+SURFACE_OFFSET_M = 0.030
 
 
 def remove_object(name):
@@ -56,13 +66,20 @@ def evaluated_world_bvh(obj):
         evaluated.to_mesh_clear()
 
 
+def row_y_values(half_width):
+    return tuple(
+        -half_width + (2.0 * half_width * index / (COLUMN_COUNT - 1))
+        for index in range(COLUMN_COUNT)
+    )
+
+
 def project_front_surface(body):
     bvh = evaluated_world_bvh(body)
     vertices = []
     projection_rows = []
-    for z in WINDSHIELD_Z:
+    for z, half_width in WINDSHIELD_ROW_SPECS:
         row = []
-        for y in WINDSHIELD_Y:
+        for y in row_y_values(half_width):
             origin = Vector((-6.0, y, z))
             location, normal, _, distance = bvh.ray_cast(
                 origin,
@@ -100,14 +117,13 @@ def create_projected_windshield(body):
         old["s1c_frozen_reference"] = True
 
     vertices, projection_rows = project_front_surface(body)
-    columns = len(WINDSHIELD_Y)
-    rows = len(WINDSHIELD_Z)
+    rows = len(WINDSHIELD_ROW_SPECS)
     faces = []
     for row in range(rows - 1):
-        for column in range(columns - 1):
-            lower_left = row * columns + column
+        for column in range(COLUMN_COUNT - 1):
+            lower_left = row * COLUMN_COUNT + column
             lower_right = lower_left + 1
-            upper_left = (row + 1) * columns + column
+            upper_left = (row + 1) * COLUMN_COUNT + column
             upper_right = upper_left + 1
             # Ordering points the front panel normal toward negative X.
             faces.append((lower_left, upper_left, upper_right, lower_right))
@@ -132,17 +148,17 @@ def create_projected_windshield(body):
         polygon.use_smooth = True
 
     solidify = windshield.modifiers.new("S2_Windshield_Thickness", "SOLIDIFY")
-    solidify.thickness = 0.008
+    solidify.thickness = 0.006
     solidify.offset = 0.0
     bevel = windshield.modifiers.new("S2_Windshield_Edge", "BEVEL")
-    bevel.width = 0.010
+    bevel.width = 0.006
     bevel.segments = 2
     bevel.limit_method = "ANGLE"
 
     windshield["nomadhub_semantic_node"] = "GLASS_WINDSHIELD"
     windshield["s2_visual_role"] = "PROJECTED_CONTINUOUS_BODY_WINDSHIELD"
     windshield["s2_projection_rows"] = rows
-    windshield["s2_projection_columns"] = columns
+    windshield["s2_projection_columns"] = COLUMN_COUNT
     windshield["s2_surface_offset_m"] = SURFACE_OFFSET_M
     windshield["s2_projection_data"] = str(projection_rows)
     return windshield
