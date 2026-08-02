@@ -1,0 +1,29 @@
+{
+  "document_id": "NH-V1.7-S1-AMD-001",
+  "project": "NomadHub General3",
+  "version": "V1.7",
+  "amends": "NH-V1.7-S1-ENG-REF-001",
+  "status": "FROZEN",
+  "reason": "原4.500m轴距和3.230m后悬与冻结外观参考图冲突，导致后轮过度靠前。经S2多轮视觉与结构验证，采用修订比例。",
+  "unchanged_dimensions_m": {
+    "overall_length": 8.990,
+    "overall_width": 2.350,
+    "overall_height": 3.050
+  },
+  "previous_values_m": {
+    "front_axle_x": -3.235,
+    "rear_axle_x": 1.265,
+    "wheelbase": 4.500,
+    "front_overhang": 1.260,
+    "rear_overhang": 3.230
+  },
+  "frozen_revised_values_m": {
+    "front_axle_x": -3.245,
+    "rear_axle_x": 1.905,
+    "wheelbase": 5.150,
+    "front_overhang": 1.250,
+    "rear_overhang": 2.590
+  },
+  "closure_check_m": 8.990,
+  "effective_from_stage": "S2_R19"
+}
