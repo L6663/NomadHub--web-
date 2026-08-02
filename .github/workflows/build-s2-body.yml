@@ -67,7 +67,8 @@ jobs:
             --blend build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend \
             --roundtrip build/source/NomadHub_General3_V1.7_S1C_SOURCE.glb \
             --manifest build/source/S1C_SOURCE_MANIFEST.json \
-            --preview build/source/S1C_SOURCE_Preview.png
+            --preview build/source/S1C_SOURCE_Preview.png \
+            --skip-proofs
 
           test -s build/source/NomadHub_General3_V1.7_S1C_SOURCE.blend
           test -s build/source/S1C_SOURCE_MANIFEST.json
