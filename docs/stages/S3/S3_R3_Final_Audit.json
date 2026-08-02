@@ -1,0 +1,66 @@
+{
+  "project": "NomadHub General3",
+  "version": "V1.7",
+  "stage": "S3",
+  "round": "R3_FINAL",
+  "result": "PASSED",
+  "next_stage": "S4",
+  "next_stage_status": "READY",
+  "asset": "NomadHub_RV_V1.7_S3_R3_Final.glb",
+  "open_state_asset": "NomadHub_RV_V1.7_S3_R3_OpenState.glb",
+  "scene": {
+    "file_size_mb": 0.9,
+    "geometry_nodes": 78,
+    "graph_nodes": 118,
+    "vertices": 20969,
+    "triangles": 40534,
+    "materials": 14,
+    "primitives": 78,
+    "attributes": {
+      "POSITION": 78,
+      "NORMAL": 78,
+      "TEXCOORD_0": 15
+    },
+    "full_extents_m": [9.012, 2.995842, 3.05],
+    "body_extents_m": [8.81, 2.349994, 2.56]
+  },
+  "body_shell": {
+    "connected_components": 1,
+    "outward_face_ratio": 1.0,
+    "intentional_openings": true
+  },
+  "opening_clearance": {
+    "minimum_mm": 12.381,
+    "maximum_fraction_under_10mm": 0.0,
+    "method": "nearest BODY_SHELL vertex approximation"
+  },
+  "gates": {
+    "glb_container_valid": true,
+    "all_required_nodes_present": true,
+    "position_attributes_complete": true,
+    "normal_attributes_complete": true,
+    "body_single_connected_component": true,
+    "body_normals_outward": true,
+    "body_width_within_10mm": true,
+    "geometry_nodes_within_budget": true,
+    "triangles_within_s3_budget": true,
+    "materials_within_budget": true,
+    "no_nonfinite_vertices": true,
+    "no_degenerate_faces": true,
+    "opening_clearance_over_10mm": true,
+    "visual_12_view_review": true,
+    "visual_closeup_review": true,
+    "opening_state_review": true
+  },
+  "carried_to_s4": [
+    "整车 UV 展开和纹理分区",
+    "Nomad Silver 左右独立品牌皮肤",
+    "珍珠银、深灰、青色和浅青色基础纹理",
+    "文字方向、门缝、窗洞和轮拱遮罩"
+  ],
+  "carried_to_s5": [
+    "最终车漆 clearcoat、玻璃透射和橡胶金属材质",
+    "LOD1/LOD2 与纹理压缩",
+    "Three.js 实时性能和 draw-call 进一步优化"
+  ]
+}
