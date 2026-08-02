@@ -2,52 +2,54 @@
   "project": "NomadHub General3",
   "version": "V1.7",
   "branch": "main",
-  "updated_at": "2026-08-02T09:58:00+08:00",
+  "updated_at": "2026-08-02T10:29:00+08:00",
   "current_stage": {
     "id": "S2",
     "name": "Blender连续车身灰模",
-    "status": "PASSED",
-    "progress_percent": 100,
+    "status": "REWORK_REQUIRED",
+    "progress_percent": 60,
     "started_at": "2026-08-01T23:40:00+08:00",
-    "completed_at": "2026-08-02T09:58:00+08:00",
-    "review_status": "PASSED",
-    "review_round": "R10_FINAL",
-    "review_summary": "首轮体素灰模已废弃并完成返工。最终模型采用非体素结构化曲面，完整场景尺寸为8.990×2.350×3.050m，具备真实轮拱和窗洞、独立玻璃、RV_ROOT、分类层级及四个真实轮心根节点，实体12视图与线框审查通过。",
-    "deliverables": [
-      "NomadHub_RV_V1.7_Blockout_Final.glb",
-      "docs/stages/S2/S2_Final_Review.md",
-      "docs/stages/S2/S2_Final_Audit.json",
-      "S2_Final_12_View_Solid_Review.png",
-      "S2_Final_Wireframe_Review.png"
+    "review_status": "FAILED_VISUAL_AND_TOPOLOGY_GATE",
+    "review_round": "INDEPENDENT_R11",
+    "supersedes_review_round": "R10_FINAL",
+    "review_summary": "独立复审确认当前GLB虽然尺寸、节点层级、轮心根节点和窗洞坐标可用，但整体仍为箱式客车轮廓，与冻结房车外观差距明显；车身由6个独立封闭网格拼接，门和检修舱仅为box轮廓线，GLB仅含POSITION且缺少NORMAL，136k三角面与粗糙灰模质量不匹配。此前S2 PASSED结论已撤销。",
+    "retained_assets": [
+      "RV_ROOT与分类层级",
+      "四个轮心根节点及局部轮组层级",
+      "车窗数量、开孔坐标与独立玻璃",
+      "车顶设备中心坐标",
+      "GLB导出和审计脚本框架"
     ],
-    "metrics": {
-      "file_size_mb": 2.23,
-      "geometry_nodes": 77,
-      "graph_nodes": 92,
-      "vertices": 68452,
-      "triangles": 136072,
-      "materials": 7,
-      "full_scene_extents_m": [8.99, 2.35, 3.05],
-      "glass_nodes": 10
-    }
+    "required_rework": [
+      "修正后轴位置和后悬参数",
+      "按权威正投影视图重建整车比例",
+      "建立连续低面车身控制笼",
+      "重建前脸、挡风玻璃、A柱、侧围和尾部曲面",
+      "建立真实车门、检修舱和门缝拓扑",
+      "GLB导出POSITION和NORMAL",
+      "将S2灰模控制到40k至80k三角面",
+      "重新执行实体视图、线框和局部近景审查"
+    ],
+    "effective_review": "docs/stages/S2/S2_Independent_Visual_GLB_Review.md"
   },
   "previous_stage": {
     "id": "S1",
     "name": "工程参考规范统一",
-    "status": "PASSED",
-    "progress_percent": 100
+    "status": "CHANGE_REQUESTED",
+    "progress_percent": 95,
+    "change_scope": "仅修正后轴位置与后悬，使数值基准和冻结视觉参考一致。"
   },
   "next_stage": {
     "id": "S3",
     "name": "结构精模与部件拆分",
-    "status": "READY",
-    "entry_condition": "S2最终灰模审查已通过；保持S1冻结尺寸和部件坐标，禁止重新使用体素或方盒堆叠方式。"
+    "status": "BLOCKED_BY_S2",
+    "entry_condition": "S1后轴/后悬纠偏完成，且S2视觉、连续车身拓扑、法线和面数门禁全部通过。"
   },
   "stages": [
     {"id":"S0","name":"视觉方向冻结","status":"PASSED","progress_percent":100},
-    {"id":"S1","name":"工程参考规范统一","status":"PASSED","progress_percent":100},
-    {"id":"S2","name":"Blender连续车身灰模","status":"PASSED","progress_percent":100,"review_status":"PASSED","review_round":"R10_FINAL"},
-    {"id":"S3","name":"结构精模与部件拆分","status":"READY","progress_percent":0},
+    {"id":"S1","name":"工程参考规范统一","status":"CHANGE_REQUESTED","progress_percent":95,"change_scope":"后轴位置与后悬"},
+    {"id":"S2","name":"Blender连续车身灰模","status":"REWORK_REQUIRED","progress_percent":60,"review_status":"FAILED_VISUAL_AND_TOPOLOGY_GATE","review_round":"INDEPENDENT_R11"},
+    {"id":"S3","name":"结构精模与部件拆分","status":"BLOCKED_BY_S2","progress_percent":0},
     {"id":"S4","name":"UV展开与Nomad Silver皮肤","status":"NOT_STARTED","progress_percent":0},
     {"id":"S5","name":"PBR材质与模型优化","status":"NOT_STARTED","progress_percent":0},
     {"id":"S6","name":"GLB导出与规范审查","status":"NOT_STARTED","progress_percent":0},
@@ -57,7 +59,7 @@
   ],
   "stage_management": {
     "mode": "MAJOR_STAGE_ONLY",
-    "rule": "以大阶段确定方向；阶段内部统一执行。仅在阶段启动、重大审查、阶段完成或重大阻塞时提交Git状态。",
+    "rule": "以大阶段确定方向；视觉门禁优先于尺寸和节点自动检查。仅在阶段启动、重大审查、阶段完成或重大阻塞时提交Git状态。",
     "bulk_upload": "PAUSED",
     "stage_commits": "ENABLED"
   }
