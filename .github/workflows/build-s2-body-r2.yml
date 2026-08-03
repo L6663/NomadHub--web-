@@ -1,0 +1,140 @@
+name: Build S2 Continuous Body R4
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "blender_rebuild/build_s2_body.py"
+      - "blender_rebuild/build_s2_body_r2.py"
+      - "blender_rebuild/build_s2_body_r2_entry.py"
+      - "blender_rebuild/build_s2_body_r2_clearance.py"
+      - "blender_rebuild/build_s2_body_r3.py"
+      - "blender_rebuild/build_s2_body_r3_fix.py"
+      - "blender_rebuild/build_s2_body_r3_fix2.py"
+      - "blender_rebuild/build_s2_body_r3_fix3.py"
+      - "blender_rebuild/build_s2_body_r3_fix4.py"
+      - "blender_rebuild/build_s2_body_r4.py"
+      - "blender_rebuild/build_s2_body_r4_fix.py"
+      - "blender_rebuild/build_s2_body_r4_fix2.py"
+      - "blender_rebuild/build_s2_body_r4_fix3.py"
+      - "blender_rebuild/build_s2_body_r4_fix4.py"
+      - "blender_rebuild/build_s2_body_r4_fix5.py"
+      - "blender_rebuild/build_s2_body_r4_fix6.py"
+      - "blender_rebuild/build_s2_body_r4_fix7.py"
+      - "blender_rebuild/build_s2_body_r4_fix7b.py"
+      - "blender_rebuild/build_s2_body_r4_fix8.py"
+      - "blender_rebuild/build_s2_body_r4_fix9.py"
+      - "blender_rebuild/preflight_s2_body_r3.py"
+      - "blender_rebuild/preflight_s2_body_r3_fix.py"
+      - "blender_rebuild/preflight_s2_body_r4.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix2.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix3.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix4.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix5.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix6.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix7.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix7b.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix8.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix9.py"
+      - "blender_rebuild/validate_s2_body.py"
+      - "blender_rebuild/validate_s2_body_r2.py"
+      - "blender_rebuild/validate_s2_body_r2_entry.py"
+      - "blender_rebuild/validate_s2_body_r3.py"
+      - "blender_rebuild/validate_s2_body_r4.py"
+      - "blender_rebuild/validate_s2_body_r4_fix2.py"
+      - "blender_rebuild/validate_s2_body_r4_fix3.py"
+      - "blender_rebuild/validate_s2_body_r4_fix5.py"
+      - "blender_rebuild/validate_s2_body_r4_fix6.py"
+      - "blender_rebuild/validate_s2_body_r4_fix7.py"
+      - "blender_rebuild/validate_s2_body_r4_fix8.py"
+      - "blender_rebuild/validate_s2_body_r4_fix9.py"
+      - "blender_rebuild/ci_s2_r4.sh"
+      - "blender_rebuild/ci_s2_r4_fix2.sh"
+      - "blender_rebuild/ci_s2_r4_fix3.sh"
+      - "blender_rebuild/ci_s2_r4_fix4.sh"
+      - "blender_rebuild/ci_s2_r4_fix5.sh"
+      - "blender_rebuild/ci_s2_r4_fix6.sh"
+      - "blender_rebuild/ci_s2_r4_fix7.sh"
+      - "blender_rebuild/ci_s2_r4_fix7b.sh"
+      - "blender_rebuild/ci_s2_r4_fix8.sh"
+      - "blender_rebuild/ci_s2_r4_fix9.sh"
+      - "blender_rebuild/build_real_blend.py"
+      - "blender_rebuild/finalize_s1c_hierarchy.py"
+      - "blender_rebuild/validate_s1c.py"
+      - ".github/workflows/build-s2-body-r2.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: s2-r4-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-s2-r4:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@v4
+
+      - name: Install Blender runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libx11-6 libxi6 libxrender1 libxfixes3 \
+            libxkbcommon0 libsm6 libice6 libxxf86vm1
+
+      - name: Restore Blender 4.2 LTS cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            blender-4.2.0-linux-x64
+            blender.tar.xz
+          key: ${{ runner.os }}-blender-4.2.0-a51f293548ad
+
+      - name: Prepare Blender 4.2 LTS
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/source build/output
+          if [ ! -x blender-4.2.0-linux-x64/blender ]; then
+            curl --fail --location --retry 4 \
+              "https://download.blender.org/release/Blender4.2/blender-4.2.0-linux-x64.tar.xz" \
+              --output blender.tar.xz
+            echo "4f4fd7646af01f6fee9d420408318381a6e52571268eb7cf9cd5033bd9e7a359  blender.tar.xz" | sha256sum -c -
+            tar -xf blender.tar.xz
+          fi
+          ./blender-4.2.0-linux-x64/blender --version
+
+      - name: Run fail-fast R4-F9 build and validation
+        shell: bash
+        run: bash blender_rebuild/ci_s2_r4_fix9.sh
+
+      - name: Upload S2 R4 candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-General3-V1.7-S2-R4-CANDIDATE
+          path: build/output/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NomadHub-S2-R4-FAILURE-DIAGNOSTICS
+          path: |
+            build/output/*.json
+            build/output/*.txt
+            build/output/S2_R4_Front_Closeup.png
+            build/output/S2_R4_Wheel_Closeup.png
+            build/output/S2_R4_Zebra_Left.png
+            build/output/S2_R4_Zebra_Right.png
+          if-no-files-found: ignore
+          retention-days: 7
+          compression-level: 1
