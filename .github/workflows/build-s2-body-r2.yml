@@ -22,6 +22,7 @@ on:
       - "blender_rebuild/build_s2_body_r4_fix6.py"
       - "blender_rebuild/build_s2_body_r4_fix7.py"
       - "blender_rebuild/build_s2_body_r4_fix7b.py"
+      - "blender_rebuild/build_s2_body_r4_fix8.py"
       - "blender_rebuild/preflight_s2_body_r3.py"
       - "blender_rebuild/preflight_s2_body_r3_fix.py"
       - "blender_rebuild/preflight_s2_body_r4.py"
@@ -32,6 +33,7 @@ on:
       - "blender_rebuild/preflight_s2_body_r4_fix6.py"
       - "blender_rebuild/preflight_s2_body_r4_fix7.py"
       - "blender_rebuild/preflight_s2_body_r4_fix7b.py"
+      - "blender_rebuild/preflight_s2_body_r4_fix8.py"
       - "blender_rebuild/validate_s2_body.py"
       - "blender_rebuild/validate_s2_body_r2.py"
       - "blender_rebuild/validate_s2_body_r2_entry.py"
@@ -42,6 +44,7 @@ on:
       - "blender_rebuild/validate_s2_body_r4_fix5.py"
       - "blender_rebuild/validate_s2_body_r4_fix6.py"
       - "blender_rebuild/validate_s2_body_r4_fix7.py"
+      - "blender_rebuild/validate_s2_body_r4_fix8.py"
       - "blender_rebuild/ci_s2_r4.sh"
       - "blender_rebuild/ci_s2_r4_fix2.sh"
       - "blender_rebuild/ci_s2_r4_fix3.sh"
@@ -50,6 +53,7 @@ on:
       - "blender_rebuild/ci_s2_r4_fix6.sh"
       - "blender_rebuild/ci_s2_r4_fix7.sh"
       - "blender_rebuild/ci_s2_r4_fix7b.sh"
+      - "blender_rebuild/ci_s2_r4_fix8.sh"
       - "blender_rebuild/build_real_blend.py"
       - "blender_rebuild/finalize_s1c_hierarchy.py"
       - "blender_rebuild/validate_s1c.py"
@@ -102,9 +106,9 @@ jobs:
           fi
           ./blender-4.2.0-linux-x64/blender --version
 
-      - name: Run fail-fast R4-F7b build and validation
+      - name: Run fail-fast R4-F8 build and validation
         shell: bash
-        run: bash blender_rebuild/ci_s2_r4_fix7b.sh
+        run: bash blender_rebuild/ci_s2_r4_fix8.sh
 
       - name: Upload S2 R4 candidate
         uses: actions/upload-artifact@v4
