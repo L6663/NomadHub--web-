@@ -21,8 +21,11 @@ if FIX_SPEC is None or FIX_SPEC.loader is None:
 fixed = importlib.util.module_from_spec(FIX_SPEC)
 FIX_SPEC.loader.exec_module(fixed)
 
-# Rebind all module globals used by the inherited F7/F6/F5/F3 contracts.
-preflight7.fixed = fixed
+# F7's visual checker calls find_cab_components and the frozen boundary
+# constants from its builder module. Keep that helper-facing binding on the F7
+# module, while every actual build/preflight layer uses the F7b builder object
+# whose shared builder has the dual-axis snapping function installed.
+preflight7.fixed = fixed.f7
 preflight6 = preflight7.preflight6
 preflight6.fixed = fixed
 preflight5 = preflight7.preflight5
