@@ -5,6 +5,7 @@ import math
 from pathlib import Path
 
 import bpy
+from mathutils import Vector
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -20,6 +21,23 @@ base = f2.base
 EXPECTED_WINDSHIELD_DIMS = (0.028, 1.740, 0.500)
 EXPECTED_WINDSHIELD_ANGLE_DEG = math.degrees(math.atan2(0.440, 0.410))
 ORIGINAL_VISUAL_REPORT = base.r4_visual_contract_report
+
+
+def windshield_world_angle_deg(obj):
+    """Return the windshield height-axis slope in the world X/Z plane.
+
+    Native Blender objects use Euler rotation in this project, while a glTF
+    round trip commonly restores the same transform in quaternion mode. Reading
+    ``rotation_euler.y`` therefore reports a false zero for valid imported GLB
+    nodes. The transformed local Z axis is representation-independent and
+    validates the actual spatial orientation carried by the object matrix.
+    """
+
+    height_axis = obj.matrix_world.to_3x3() @ Vector((0.0, 0.0, 1.0))
+    if height_axis.length <= 1e-9:
+        return None
+    height_axis.normalize()
+    return math.degrees(math.atan2(abs(height_axis.x), abs(height_axis.z)))
 
 
 def visual_report_f3(label):
@@ -46,9 +64,11 @@ def visual_report_f3(label):
 
     glass_dims = None
     glass_angle = None
+    glass_rotation_mode = None
     if glass is not None:
         glass_dims = tuple(float(value) for value in glass.dimensions)
-        glass_angle = math.degrees(float(glass.rotation_euler.y))
+        glass_angle = windshield_world_angle_deg(glass)
+        glass_rotation_mode = glass.rotation_mode
         if any(
             abs(actual - expected) > 0.015
             for actual, expected in zip(glass_dims, EXPECTED_WINDSHIELD_DIMS)
@@ -56,9 +76,11 @@ def visual_report_f3(label):
             failures.append(
                 f"{label}: R4-F3 windshield dimensions {glass_dims} outside tolerance"
             )
-        if abs(glass_angle - EXPECTED_WINDSHIELD_ANGLE_DEG) > 0.05:
+        if glass_angle is None:
+            failures.append(f"{label}: R4-F3 windshield world axis is degenerate")
+        elif abs(glass_angle - EXPECTED_WINDSHIELD_ANGLE_DEG) > 0.05:
             failures.append(
-                f"{label}: R4-F3 windshield angle {glass_angle:.4f} != "
+                f"{label}: R4-F3 windshield world angle {glass_angle:.4f} != "
                 f"{EXPECTED_WINDSHIELD_ANGLE_DEG:.4f}"
             )
 
@@ -96,6 +118,7 @@ def visual_report_f3(label):
 
     report["windshield_glass_dimensions_m"] = list(glass_dims) if glass_dims else None
     report["windshield_angle_deg"] = glass_angle
+    report["windshield_rotation_mode"] = glass_rotation_mode
     report["cab_source_edge_mask_surfaces"] = masked_cab_surfaces
     report["invisible_auxiliary_wheel_nodes"] = hidden_wheel_nodes
     report["failures"] = failures
